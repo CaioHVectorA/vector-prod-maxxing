@@ -1,0 +1,31 @@
+{
+  "hostname": "ai-rig-01",
+  "display_name": "AI Training Rig #1 (Remote)",
+  "role": "Treinamento IA & RL",
+  "os": "Linux / Windows GPU Node",
+  "platform": "linux",
+  "ip": "192.168.1.50",
+  "last_seen": "",
+  "develop_dir": "~/develop",
+  "cpu_percent": 0.0,
+  "ram_used_gb": 0.0,
+  "ram_total_gb": 64.0,
+  "gpu": {
+    "available": true,
+    "name": "NVIDIA CUDA Node",
+    "util_percent": 0,
+    "vram_used_mb": 0,
+    "vram_total_mb": 24576,
+    "temp_c": 0
+  },
+  "ai_training": {
+    "active": false,
+    "project": "",
+    "command": "",
+    "progress_hint": "Clone vector-prod-maxxing na máquina"
+  },
+  "remote_control": {
+    "type": "ssh",
+    "target": "usuario@192.168.1.50"
+  }
+}

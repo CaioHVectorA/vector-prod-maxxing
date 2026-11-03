@@ -1,0 +1,37 @@
+[
+  {
+    "id": "f2_q1",
+    "topico": "MHS & Oscilações Amortecidas",
+    "enunciado": "Um oscilador harmônico simples com massa m = 0.5 kg e mola de constante k = 200 N/m possui amortecimento linear com b = 2 N·s/m. Calcule a frequência angular natural ω0 e determine se o sistema está subamortecido, criticamente amortecido ou superamortecido.",
+    "gabarito": "ω0 = sqrt(k/m) = sqrt(200 / 0.5) = 20 rad/s. γ = b / (2m) = 2 / (2 * 0.5) = 2 s^-1. Como γ (2) < ω0 (20), o sistema está SUBAMORTECIDO com ω' = sqrt(ω0^2 - γ^2) = sqrt(400 - 4) = sqrt(396) ≈ 19.9 rad/s.",
+    "dica": "Compare γ = b/(2m) com ω0 = sqrt(k/m)."
+  },
+  {
+    "id": "f2_q2",
+    "topico": "Ondas Sonoras & Efeito Doppler",
+    "enunciado": "Uma ambulância se aproxima de um pedestre parado com velocidade de 34 m/s, emitindo uma sirene de 800 Hz. Considerando a velocidade do som no ar como 340 m/s, qual frequência o pedestre ouve?",
+    "gabarito": "Fonte em aproximação: f' = f * (v / (v - vs)) = 800 * (340 / (340 - 34)) = 800 * (340 / 306) ≈ 888.9 Hz.",
+    "dica": "O observador está parado (vo = 0) e a fonte se aproxima (sinal negativo no denominador)."
+  },
+  {
+    "id": "f2_q3",
+    "topico": "Termodinâmica - Ciclo de Carnot",
+    "enunciado": "Uma máquina térmica de Carnot opera entre dois reservatórios térmicos a 600 K (fonte quente) e 300 K (fonte fria). Se ela absorve 1200 J de calor da fonte quente por ciclo, calcule seu rendimento máximo teórico e o trabalho realizado por ciclo.",
+    "gabarito": "η = 1 - (T_fria / T_quente) = 1 - (300 / 600) = 0.50 (50%). Trabalho W = η * Q_quente = 0.50 * 1200 J = 600 J por ciclo.",
+    "dica": "As temperaturas devem estar sempre em Kelvin!"
+  },
+  {
+    "id": "f2_q4",
+    "topico": "Fluidos - Equação de Bernoulli & Continuidade",
+    "enunciado": "Água escoa em um tubo horizontal com velocidade de 2 m/s onde a área da seção reta é 20 cm² e a pressão manométrica é 100 kPa. O tubo se estreita para uma área de 5 cm². Calcule a velocidade da água no estrangulamento e a nova pressão manométrica.",
+    "gabarito": "Continuidade: A1*v1 = A2*v2 => 20*2 = 5*v2 => v2 = 8 m/s. Bernoulli (horizontal): P1 + 0.5*ρ*v1^2 = P2 + 0.5*ρ*v2^2. P2 = 100 kPa + 0.5*1000*(2^2 - 8^2) Pa = 100.000 - 30.000 = 70 kPa.",
+    "dica": "Densidade da água ρ = 1000 kg/m³. Lembre que onde a velocidade aumenta, a pressão estática diminui."
+  },
+  {
+    "id": "f2_q5",
+    "topico": "Primeira Lei da Termodinâmica",
+    "enunciado": "Dois moles de um gás ideal monoatômico sofrem uma expansão isobárica à pressão de 100 kPa, variando seu volume de 0.02 m³ para 0.05 m³. Calcule o trabalho W realizado pelo gás, a variação de energia interna ΔU e o calor Q absorvido.",
+    "gabarito": "Trabalho W = P * ΔV = 100.000 * 0.03 = 3000 J. Para gás monoatômico: Cv = (3/2)R, Cp = (5/2)R. ΔU = (3/2) * P * ΔV = 1.5 * 3000 = 4500 J. Primeira Lei: Q = ΔU + W = 4500 + 3000 = 7500 J.",
+    "dica": "Para processo isobárico de gás monoatômico: W = PΔV, ΔU = 1.5 PΔV e Q = 2.5 PΔV."
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "c3_q1",
+    "topico": "Derivadas Parciais & Regra da Cadeia",
+    "enunciado": "Seja z = f(x, y) = x^2 * y + 3*y^2. Calcule o vetor gradiente ∇f(1, 2) e a derivada direcional no ponto (1, 2) na direção do vetor v = (3, 4).",
+    "gabarito": "∇f(1, 2) = (4, 13). Vetor unitário u = (3/5, 4/5). Derivada direcional: 4*(3/5) + 13*(4/5) = 12/5 + 52/5 = 64/5 = 12.8.",
+    "dica": "Lembre de normalizar o vetor de direção antes de fazer o produto escalar com o gradiente!"
+  },
+  {
+    "id": "c3_q2",
+    "topico": "Multiplicadores de Lagrange",
+    "enunciado": "Encontre os valores máximo e mínimo da função f(x, y) = 2x + y sujeita ao vínculo x^2 + y^2 = 5.",
+    "gabarito": "∇f = λ ∇g => (2, 1) = λ(2x, 2y) => x = 1/λ, y = 1/(2λ). x = 2y. Substituindo: 4y^2 + y^2 = 5 => y = ±1, x = ±2. Máximo f(2, 1) = 5, Mínimo f(-2, -1) = -5.",
+    "dica": "Monte o sistema ∇f = λ ∇g e use o vínculo para achar os pontos críticos."
+  },
+  {
+    "id": "c3_q3",
+    "topico": "Integrais Duplas em Coordenadas Polares",
+    "enunciado": "Calcule a integral dupla ∬_R exp(-(x^2 + y^2)) dA, onde R é a região do primeiro quadrante delimitada pelo círculo x^2 + y^2 = 4.",
+    "gabarito": "Em polares: θ vai de 0 a π/2, r vai de 0 a 2. O jacobiano é r dr dθ. ∫[0, π/2] dθ * ∫[0, 2] r*exp(-r^2) dr = (π/2) * [ -1/2 * exp(-r^2) ]_0^2 = (π/4) * (1 - e^-4).",
+    "dica": "Não se esqueça do fator r (jacobiano) ao converter dA = r dr dθ."
+  },
+  {
+    "id": "c3_q4",
+    "topico": "Teorema de Green",
+    "enunciado": "Utilize o Teorema de Green para calcular o trabalho da força F = (y^3, -x^3) ao longo da circunferência orientada no sentido anti-horário x^2 + y^2 = 1.",
+    "gabarito": "Green: ∮ (P dx + Q dy) = ∬ (∂Q/∂x - ∂P/∂y) dA. ∂Q/∂x = -3x^2, ∂P/∂y = 3y^2. ∬ (-3x^2 - 3y^2) dA = -3 ∬ (x^2 + y^2) dA. Em polares: -3 ∫[0, 2π] ∫[0, 1] r^3 dr dθ = -3 * 2π * [r^4/4]_0^1 = -3π/2.",
+    "dica": "O integrando torna-se -3(x^2 + y^2), que em coordenadas polares é -3r^2 * r dr dθ."
+  },
+  {
+    "id": "c3_q5",
+    "topico": "Integrais de Linha & Campos Conservativos",
+    "enunciado": "Determine se o campo vetorial F(x, y) = (2x*y + y^2, x^2 + 2x*y) é conservativo. Se for, encontre sua função potencial f(x, y) tal que ∇f = F.",
+    "gabarito": "∂P/∂y = 2x + 2y; ∂Q/∂x = 2x + 2y. Como são iguais em todo R^2, o campo é conservativo. Integrando: f(x, y) = x^2*y + x*y^2 + C.",
+    "dica": "∂f/∂x = P(x, y) => integre em relação a x e derive em relação a y para achar a constante g(y)."
+  }
+]

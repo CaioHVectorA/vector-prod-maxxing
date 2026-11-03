@@ -1,0 +1,31 @@
+{
+  "hostname": "windows-workstation",
+  "display_name": "Windows PC (Dev & CAD)",
+  "role": "Ambiente Windows Nativo",
+  "os": "Windows 11 Pro",
+  "platform": "windows",
+  "ip": "192.168.1.20",
+  "last_seen": "",
+  "develop_dir": "C:\\Users\\usuario\\develop",
+  "cpu_percent": 0.0,
+  "ram_used_gb": 0.0,
+  "ram_total_gb": 32.0,
+  "gpu": {
+    "available": true,
+    "name": "GPU Dedicada",
+    "util_percent": 0,
+    "vram_used_mb": 0,
+    "vram_total_mb": 12288,
+    "temp_c": 0
+  },
+  "ai_training": {
+    "active": false,
+    "project": "",
+    "command": "",
+    "progress_hint": "Aguardando sync..."
+  },
+  "remote_control": {
+    "type": "rdp",
+    "target": "192.168.1.20"
+  }
+}

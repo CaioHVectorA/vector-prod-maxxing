@@ -1,0 +1,107 @@
+{
+  "settings": {
+    "solid_background": false,
+    "window_width": 450,
+    "window_height": 760,
+    "is_pinned": true,
+    "is_collapsed": false,
+    "active_tab": 0,
+    "focus_active": false
+  },
+  "estudos": {
+    "semestre": "2026.2",
+    "meta_questoes_diarias": 5,
+    "questoes_feitas_hoje": 4,
+    "streak_dias": 2,
+    "disciplinas": [
+      {
+        "id": "calculo3",
+        "nome": "Cálculo III",
+        "prioridade": "alta",
+        "p1": 7.7,
+        "p2": null,
+        "vs": null,
+        "peso_p1": 2,
+        "peso_p2": 3,
+        "regra": "ponderada_2_3",
+        "meta_p2": 4.9,
+        "data_p2": "2026-11-28",
+        "ultimo_estudo": "2026-11-03T00:53:05",
+        "questoes_file": "calculo3.json"
+      },
+      {
+        "id": "fisica2",
+        "nome": "Física II",
+        "prioridade": "alta",
+        "p1": 6.7,
+        "p2": 8.7,
+        "p3": null,
+        "testes": null,
+        "vs": null,
+        "regra": "media_provas_testes",
+        "data_p3": "2026-12-05",
+        "ultimo_estudo": "2026-11-01T18:45:00",
+        "simulador_url": "http://localhost:8080",
+        "questoes_file": "fisica2.json"
+      },
+      {
+        "id": "met_numericos",
+        "nome": "Métodos Numéricos",
+        "prioridade": "media",
+        "p1": null,
+        "p2": null,
+        "vs": null,
+        "data_p1": "2026-11-24",
+        "ultimo_estudo": "2026-10-30T10:00:00"
+      },
+      {
+        "id": "sis_computacao",
+        "nome": "Sistemas de Computação",
+        "prioridade": "media",
+        "p1": null,
+        "p2": null,
+        "vs": null,
+        "data_p1": "2026-11-26",
+        "ultimo_estudo": "2026-10-29T14:00:00"
+      },
+      {
+        "id": "fisica_exp2",
+        "nome": "Física Experimental II",
+        "prioridade": "media",
+        "p1": null,
+        "p2": null,
+        "vs": null,
+        "data_p1": "2026-12-01",
+        "ultimo_estudo": "2026-10-28T16:00:00"
+      }
+    ]
+  },
+  "referencias": [
+    {
+      "title": "Simulador de Provas de Física II (UFF)",
+      "url": "http://localhost:8080",
+      "category": "estudos"
+    },
+    {
+      "title": "Portal do Aluno - IdUFF",
+      "url": "https://app.uff.br/iduff/",
+      "category": "estudos"
+    },
+    {
+      "title": "Resumo P2 Física 2 (Colinha Definitiva)",
+      "url": "file:///home/usuario/develop/Pfisicas/RESUMO_P2_COLINHA_DEFINITIVA.md",
+      "category": "estudos"
+    },
+    {
+      "title": "ESP32 DevKit V1 Pinout & Schematics",
+      "url": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32/user-guide-devkitm-1.html",
+      "category": "hardware"
+    }
+  ],
+  "focus": {
+    "duration_min": 25,
+    "break_min": 5,
+    "mute_notifications": true,
+    "block_social": true
+  }
+}
