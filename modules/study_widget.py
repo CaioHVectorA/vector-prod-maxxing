@@ -25,9 +25,9 @@ from modules.focus_manager import (
     activate_focus_mode, deactivate_focus_mode, block_active_distractions, record_study_session
 )
 
-DATA_PATH = os.path.expanduser("~/.config/desktop-hud/data.json")
-QUESTOES_DIR = os.path.expanduser("~/.config/desktop-hud/questoes")
-PFISICAS_DIR = os.path.expanduser("~/develop/Pfisicas")
+from modules.env_resolver import DATA_PATH, QUESTOES_DIR, find_project_subdir
+
+PFISICAS_DIR = find_project_subdir("Pfisicas")
 
 
 def format_days_ago(date_str: str) -> str:

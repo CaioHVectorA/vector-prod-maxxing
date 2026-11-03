@@ -11,8 +11,7 @@ import time
 import os
 import json
 
-CONFIG_DIR = os.path.expanduser("~/.config/desktop-hud")
-DATA_PATH = os.path.join(CONFIG_DIR, "data.json")
+from modules.env_resolver import DATA_PATH, LOCAL_CONFIG_DIR as CONFIG_DIR
 PAC_FILE = os.path.join(CONFIG_DIR, "focus.pac")
 
 BLOCKED_DOMAINS = [

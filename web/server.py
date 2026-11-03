@@ -15,25 +15,30 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from datetime import datetime, timedelta
 
-PORT = 8090
-CONFIG_DIR = os.path.expanduser("~/.config/desktop-hud")
-DATA_PATH = os.path.join(CONFIG_DIR, "data.json")
-PINNED_FILE = os.path.join(CONFIG_DIR, "pinned_projects.json")
-PAC_FILE = os.path.join(CONFIG_DIR, "focus.pac")
-DEVELOP_DIR = os.path.expanduser("~/develop")
-UVC_DIR = os.path.join(DEVELOP_DIR, "UVC")
-CALC_DIR = os.path.expanduser("~/Downloads/calc")
-ANTIGRAVITY_DB = os.path.expanduser("~/.gemini/antigravity/conversation_summaries.db")
-STORAGE_JSON = os.path.expanduser("~/.config/Antigravity IDE/User/globalStorage/storage.json")
-IDE_BIN = "/home/usuario/.local/bin/antigravity-ide"
-WEB_DIR = os.path.dirname(os.path.realpath(__file__))
-
 import sys
-BASE_DIR = os.path.dirname(WEB_DIR)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
+from modules.env_resolver import (
+    DATA_PATH, PINNED_FILE, EVENTS_FILE, LOCAL_CONFIG_DIR as CONFIG_DIR,
+    discover_develop_dir, find_project_subdir, get_antigravity_ide_bin,
+    get_antigravity_db_path, get_antigravity_storage_path,
+    open_file_or_url, open_terminal_at, open_in_antigravity
+)
+from modules.nodes_widget import load_all_nodes, trigger_remote_control, update_local_node_heartbeat
+from modules.git_sync import run_git_sync_once
 from modules.focus_manager import activate_focus_mode, deactivate_focus_mode, generate_pac_file
+
+PORT = 8090
+PAC_FILE = os.path.join(CONFIG_DIR, "focus.pac")
+DEVELOP_DIR = discover_develop_dir()
+UVC_DIR = find_project_subdir("UVC")
+CALC_DIR = os.path.expanduser("~/Downloads/calc")
+ANTIGRAVITY_DB = get_antigravity_db_path()
+STORAGE_JSON = get_antigravity_storage_path()
+IDE_BIN = get_antigravity_ide_bin() or "/home/usuario/.local/bin/antigravity-ide"
+WEB_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def get_daily_cutoff_iso() -> str:
@@ -84,6 +89,8 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
             self._serve_bluetooth_devices()
         elif self.path == "/api/calc/files":
             self._serve_calc_files()
+        elif self.path == "/api/nodes":
+            self._serve_nodes()
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"Not Found")
@@ -106,10 +113,14 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
             self._handle_focus(False)
         elif self.path == "/api/git/push":
             self._handle_push(payload)
+        elif self.path == "/api/git/sync":
+            self._handle_sync()
         elif self.path == "/api/open-ide" or self.path == "/api/antigravity/open":
             self._handle_open_ide(payload)
         elif self.path == "/api/antigravity/terminal":
             self._handle_open_terminal(payload)
+        elif self.path == "/api/nodes/remote":
+            self._handle_node_remote(payload)
         elif self.path == "/api/writing/chapter":
             self._handle_create_chapter(payload)
         elif self.path == "/api/bluetooth/power":
@@ -624,16 +635,44 @@ Data: {datetime.now().strftime('%d/%m/%Y')}
     def _handle_open_ide(self, payload):
         path = payload.get("path")
         if path and os.path.exists(path):
-            subprocess.Popen([IDE_BIN, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            open_in_antigravity(path)
         self._set_headers(200, "application/json")
         self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
 
     def _handle_open_terminal(self, payload):
         path = payload.get("path")
         if path and os.path.exists(path):
-            subprocess.Popen(["gnome-terminal", f"--working-directory={path}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            open_terminal_at(path)
         self._set_headers(200, "application/json")
         self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
+
+    def _serve_nodes(self):
+        try:
+            nodes = load_all_nodes()
+            self._set_headers(200, "application/json")
+            self.wfile.write(json.dumps({"status": "ok", "nodes": nodes}, ensure_ascii=False).encode("utf-8"))
+        except Exception as e:
+            self._set_headers(500, "application/json")
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
+    def _handle_node_remote(self, payload):
+        try:
+            trigger_remote_control(payload)
+            self._set_headers(200, "application/json")
+            self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
+        except Exception as e:
+            self._set_headers(500, "application/json")
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
+    def _handle_sync(self):
+        try:
+            update_local_node_heartbeat()
+            ok, msg = run_git_sync_once()
+            self._set_headers(200, "application/json")
+            self.wfile.write(json.dumps({"status": "ok" if ok else "error", "message": msg}).encode("utf-8"))
+        except Exception as e:
+            self._set_headers(500, "application/json")
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
 
     def log_message(self, format, *args):
         pass

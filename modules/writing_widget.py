@@ -16,9 +16,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 
-UVC_DIR = os.path.expanduser("~/develop/UVC")
-IDE_BIN = "/home/usuario/.local/bin/antigravity-ide"
-EVENTS_FILE = os.path.expanduser("~/.config/desktop-hud/events.jsonl")
+from modules.env_resolver import EVENTS_FILE, find_project_subdir, get_antigravity_ide_bin
+
+UVC_DIR = find_project_subdir("UVC")
+IDE_BIN = get_antigravity_ide_bin() or "/home/usuario/.local/bin/antigravity-ide"
 
 
 def get_daily_cutoff_timestamp() -> float:

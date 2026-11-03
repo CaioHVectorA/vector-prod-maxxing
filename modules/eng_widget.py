@@ -16,9 +16,9 @@ from PyQt6.QtCore import QTimer, Qt
 
 from modules.hardware_flasher import HardwareFlasherWidget
 from modules.vm_widget import WindowsVMWidget
+from modules.env_resolver import discover_develop_dir, IS_MAIN_LINUX_VM_HOST, open_in_antigravity
 
-DEVELOP_DIR = os.path.expanduser("~/develop")
-ANTIGRAVITY_IDE = "/home/usuario/.local/bin/antigravity-ide"
+DEVELOP_DIR = discover_develop_dir()
 
 
 class EngHardwareWidget(QFrame):
@@ -72,9 +72,10 @@ class EngHardwareWidget(QFrame):
 
         c_layout.addWidget(self.card_projects)
 
-        # 3. Windows VM Control
-        self.vm_widget = WindowsVMWidget(self)
-        c_layout.addWidget(self.vm_widget)
+        # 3. Windows VM Control (ONLY shown on the main Linux workstation 'policorp')
+        if IS_MAIN_LINUX_VM_HOST:
+            self.vm_widget = WindowsVMWidget(self)
+            c_layout.addWidget(self.vm_widget)
 
         scroll.setWidget(container)
         layout.addWidget(scroll)
@@ -104,7 +105,7 @@ class EngHardwareWidget(QFrame):
                         pass
 
         if not found:
-            lbl_empty = QLabel("Nenhum .hud.json encontrado. Crie um em ~/develop/<projeto>/.hud.json")
+            lbl_empty = QLabel("Nenhum .hud.json encontrado na pasta de projetos.")
             lbl_empty.setStyleSheet("color: #64748b; font-size: 10px; font-style: italic;")
             self.hud_projects_layout.addWidget(lbl_empty)
             return
@@ -146,5 +147,4 @@ class EngHardwareWidget(QFrame):
             self.hud_projects_layout.addWidget(row)
 
     def _open_ide(self, path: str):
-        if os.path.exists(ANTIGRAVITY_IDE):
-            subprocess.Popen([ANTIGRAVITY_IDE, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        open_in_antigravity(path)

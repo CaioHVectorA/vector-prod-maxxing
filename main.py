@@ -36,14 +36,17 @@ from modules.dev_widget import DevProductivityWidget
 from modules.eng_widget import EngHardwareWidget
 from modules.writing_widget import WritingProductivityWidget
 from modules.study_widget import StudyWidget
-
-CONFIG_DIR = os.path.expanduser("~/.config/desktop-hud")
-DATA_PATH = os.path.join(CONFIG_DIR, "data.json")
-EVENTS_FILE = os.path.join(CONFIG_DIR, "events.jsonl")
+from modules.env_resolver import (
+    DATA_PATH, EVENTS_FILE, LOCAL_CONFIG_DIR,
+    load_local_ui, save_local_ui, IS_MAIN_LINUX_VM_HOST,
+    IS_WINDOWS, IS_LINUX, discover_develop_dir, open_file_or_url,
+    open_terminal_at, install_antigravity_global_rule, VM_SCRIPT
+)
+from modules.git_sync import GitSyncManager
+from modules.nodes_widget import update_local_node_heartbeat
 
 DEFAULT_WIDTH = 450
 DEFAULT_HEIGHT = 760
-VM_SCRIPT = "/home/usuario/windows-vm/windows.sh"
 
 
 class DesktopHUDWindow(QWidget):
@@ -55,6 +58,13 @@ class DesktopHUDWindow(QWidget):
         self.drag_position = None
         self.saved_height = DEFAULT_HEIGHT
         self.saved_width = DEFAULT_WIDTH
+
+        # Ensure global Antigravity 2.0 rule and node heartbeat are registered
+        install_antigravity_global_rule()
+        update_local_node_heartbeat()
+
+        # Initialize automatic Git sync daemon (pulls every 3m, commits/pushes 45s after data change)
+        self.git_sync = GitSyncManager(on_status_change=self._on_git_sync_status)
 
         self._load_settings()
 
@@ -79,54 +89,50 @@ class DesktopHUDWindow(QWidget):
 
         self._position_on_screen()
 
-        # Global VM Poller Timer
-        self.vm_timer = QTimer(self)
-        self.vm_timer.timeout.connect(self._check_vm_status)
-        self.vm_timer.start(4000)
-        self._check_vm_status()
+        # Global VM Poller Timer (ONLY on the main Linux workstation with dockurr/windows VM)
+        if IS_MAIN_LINUX_VM_HOST:
+            self.vm_timer = QTimer(self)
+            self.vm_timer.timeout.connect(self._check_vm_status)
+            self.vm_timer.start(4000)
+            self._check_vm_status()
 
         # Bidirectional AI-HUD Communication File Watcher
         self._setup_file_watcher()
 
+    def _on_git_sync_status(self, success: bool, msg: str):
+        if hasattr(self, 'btn_sync'):
+            self.btn_sync.setText(msg[:16])
+            color = "#4ade80" if success else "#f87171"
+            if "Sincronizando" in msg:
+                color = "#38bdf8"
+            self.btn_sync.setStyleSheet(f"font-size: 10px; padding: 3px 6px; color: {color};")
+            self.btn_sync.setToolTip(f"Git Auto-Sync: {msg}")
+
     def _load_settings(self):
         self.saved_width = DEFAULT_WIDTH
         self.saved_height = DEFAULT_HEIGHT
-        if os.path.exists(DATA_PATH):
-            try:
-                with open(DATA_PATH, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    cfg = data.get("settings", {})
-                    self.is_solid = cfg.get("solid_background", False)
-                    self.is_pinned = cfg.get("is_pinned", True)
-                    self.is_collapsed = cfg.get("is_collapsed", False)
-                    self.active_tab = cfg.get("active_tab", 0)
-                    self.saved_width = max(360, min(950, cfg.get("window_width", DEFAULT_WIDTH)))
-                    self.saved_height = max(420, min(1150, cfg.get("window_height", DEFAULT_HEIGHT)))
-            except Exception:
-                pass
+        cfg = load_local_ui()
+        self.is_solid = cfg.get("solid_background", False)
+        self.is_pinned = cfg.get("is_pinned", True)
+        self.is_collapsed = cfg.get("is_collapsed", False)
+        self.active_tab = cfg.get("active_tab", 0)
+        self.saved_width = max(360, min(950, cfg.get("window_width", DEFAULT_WIDTH)))
+        self.saved_height = max(420, min(1150, cfg.get("window_height", DEFAULT_HEIGHT)))
 
     def _save_settings(self):
-        if not os.path.exists(DATA_PATH):
-            return
-        try:
-            with open(DATA_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if "settings" not in data:
-                data["settings"] = {}
-            data["settings"]["solid_background"] = self.is_solid
-            data["settings"]["is_pinned"] = self.is_pinned
-            data["settings"]["is_collapsed"] = self.is_collapsed
-            data["settings"]["active_tab"] = self.tabs.currentIndex() if hasattr(self, 'tabs') else 0
-            data["settings"]["window_width"] = self.width()
-            if not self.is_collapsed:
-                data["settings"]["window_height"] = self.height()
-            with open(DATA_PATH, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
+        cfg = {
+            "solid_background": self.is_solid,
+            "is_pinned": self.is_pinned,
+            "is_collapsed": self.is_collapsed,
+            "active_tab": self.tabs.currentIndex() if hasattr(self, 'tabs') else 0,
+            "window_width": self.width(),
+        }
+        if not self.is_collapsed:
+            cfg["window_height"] = self.height()
+        save_local_ui(cfg)
 
     def _setup_file_watcher(self):
-        os.makedirs(CONFIG_DIR, exist_ok=True)
+        os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
         self.watcher = QFileSystemWatcher(self)
         for path in [DATA_PATH, EVENTS_FILE]:
             if not os.path.exists(path):
@@ -140,8 +146,10 @@ class DesktopHUDWindow(QWidget):
         self.watcher.fileChanged.connect(self._on_watched_file_changed)
 
     def _on_watched_file_changed(self, path):
-        # Refresh study and writing widgets immediately
+        # Refresh widgets immediately and trigger debounced auto-commit & push to GitHub
         QTimer.singleShot(200, self._refresh_all_tabs)
+        if hasattr(self, 'git_sync'):
+            self.git_sync.notify_data_changed()
         if os.path.exists(path) and path not in self.watcher.files():
             self.watcher.addPath(path)
 
@@ -245,12 +253,14 @@ class DesktopHUDWindow(QWidget):
         self.clock_widget = ClockWidget(self)
         h_head.addWidget(self.clock_widget)
 
-        # Global VM Status Badge (Beside Clock)
-        self.btn_vm_badge = QPushButton("⚫ Win11")
-        self.btn_vm_badge.setStyleSheet("font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);")
-        self.btn_vm_badge.setToolTip("Status da VM Windows (Fusion 360)")
-        self.btn_vm_badge.clicked.connect(self._on_vm_badge_clicked)
-        h_head.addWidget(self.btn_vm_badge)
+        # Global VM Status Badge (Beside Clock - ONLY visible on main Linux VM Host)
+        self.btn_vm_badge = None
+        if IS_MAIN_LINUX_VM_HOST:
+            self.btn_vm_badge = QPushButton("⚫ Win11")
+            self.btn_vm_badge.setStyleSheet("font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);")
+            self.btn_vm_badge.setToolTip("Status da VM Windows (Fusion 360)")
+            self.btn_vm_badge.clicked.connect(self._on_vm_badge_clicked)
+            h_head.addWidget(self.btn_vm_badge)
 
         h_head.addStretch()
 
@@ -330,10 +340,17 @@ class DesktopHUDWindow(QWidget):
         btn_taskmgr.clicked.connect(self._launch_taskmgr)
         h_bottom.addWidget(btn_taskmgr)
 
-        btn_develop = QPushButton("📂 ~/develop")
+        dev_name = os.path.basename(discover_develop_dir())
+        btn_develop = QPushButton(f"📂 {dev_name}")
         btn_develop.setStyleSheet("font-size: 10px; padding: 3px 6px;")
         btn_develop.clicked.connect(self._open_develop_folder)
         h_bottom.addWidget(btn_develop)
+
+        self.btn_sync = QPushButton("☁️ Sync")
+        self.btn_sync.setStyleSheet("font-size: 10px; padding: 3px 6px; color: #38bdf8;")
+        self.btn_sync.setToolTip("Git Auto-Sync (clique para sincronizar agora)")
+        self.btn_sync.clicked.connect(self.git_sync.sync_now_async)
+        h_bottom.addWidget(self.btn_sync)
 
         h_bottom.addStretch()
 
@@ -344,6 +361,8 @@ class DesktopHUDWindow(QWidget):
         self.root_layout.addWidget(self.bottom_bar_widget)
 
     def _check_vm_status(self):
+        if not IS_MAIN_LINUX_VM_HOST or not hasattr(self, 'btn_vm_badge') or self.btn_vm_badge is None:
+            return
         try:
             res = subprocess.run(
                 ["docker", "inspect", "-f", "{{.State.Running}}", "windows-fusion360"],
@@ -360,6 +379,8 @@ class DesktopHUDWindow(QWidget):
             pass
 
     def _on_vm_badge_clicked(self):
+        if not IS_MAIN_LINUX_VM_HOST or not hasattr(self, 'btn_vm_badge') or self.btn_vm_badge is None:
+            return
         menu = QMenu(self)
         menu.setStyleSheet("""
             QMenu { background-color: #1a1e27; border: 1px solid rgba(255, 255, 255, 0.1); color: #f1f5f9; padding: 4px; }
@@ -394,7 +415,7 @@ class DesktopHUDWindow(QWidget):
         self._save_settings()
 
     def _open_web(self):
-        subprocess.Popen(["xdg-open", "http://localhost:8090"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        open_file_or_url("http://localhost:8090")
 
     def _launch_taskmgr(self):
         taskmgr_path = "/home/usuario/taskmgr_linux/taskmgr"
@@ -404,7 +425,7 @@ class DesktopHUDWindow(QWidget):
             subprocess.Popen(["gnome-system-monitor"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def _open_develop_folder(self):
-        subprocess.Popen(["xdg-open", "/home/usuario/develop"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        open_file_or_url(discover_develop_dir())
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -440,10 +461,10 @@ class HUDTrayIcon(QSystemTrayIcon):
         act_show.triggered.connect(self._toggle_hud)
 
         act_web = menu.addAction("🌐 Abrir Painel Web (localhost:8090)")
-        act_web.triggered.connect(lambda: subprocess.Popen(["xdg-open", "http://localhost:8090"]))
+        act_web.triggered.connect(lambda: open_file_or_url("http://localhost:8090"))
 
-        act_dev = menu.addAction("📂 Abrir ~/develop")
-        act_dev.triggered.connect(lambda: subprocess.Popen(["xdg-open", "/home/usuario/develop"]))
+        act_dev = menu.addAction("📂 Abrir Pasta de Projetos")
+        act_dev.triggered.connect(lambda: open_file_or_url(discover_develop_dir()))
 
         menu.addSeparator()
 
@@ -484,6 +505,21 @@ class HUDTrayIcon(QSystemTrayIcon):
 
 
 def main():
+    if "--headless-node" in sys.argv:
+        print("[Vector-HUD] Iniciando modo Headless Node Daemon...")
+        install_antigravity_global_rule()
+        update_local_node_heartbeat()
+        sync_mgr = GitSyncManager()
+        import time
+        try:
+            while True:
+                time.sleep(30)
+                update_local_node_heartbeat()
+        except KeyboardInterrupt:
+            sync_mgr.stop()
+            print("[Vector-HUD] Headless daemon finalizado.")
+        sys.exit(0)
+
     app = QApplication(sys.argv)
     app.setApplicationName("Desktop HUD")
     app.setQuitOnLastWindowClosed(False)

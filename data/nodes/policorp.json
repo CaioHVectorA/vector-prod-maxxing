@@ -5,10 +5,10 @@
   "os": "Linux (6.10.7-policorp-amd64)",
   "platform": "linux",
   "ip": "10.0.1.26",
-  "last_seen": "2026-11-03T09:28:48",
+  "last_seen": "2026-11-03T09:29:29",
   "develop_dir": "/home/usuario/develop",
-  "cpu_percent": 5.9,
-  "ram_used_gb": 10.3,
+  "cpu_percent": 4.7,
+  "ram_used_gb": 10.4,
   "ram_total_gb": 30.7,
   "gpu": {
     "available": false

@@ -71,14 +71,20 @@
       <button onclick="switchTab('referencias')" id="tab-btn-referencias" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
         📚 Referências
       </button>
+      <button onclick="switchTab('nodes')" id="tab-btn-nodes" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        🌐 Environments & IA
+      </button>
       <button onclick="switchTab('config')" id="tab-btn-config" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
         ⚙️ Config
       </button>
     </nav>
 
-    <!-- Save Status Pill -->
-    <div class="flex items-center gap-3">
+    <!-- Save Status Pill & Git Sync -->
+    <div class="flex items-center gap-2">
       <span id="save-status" class="text-xs text-slate-500">Sincronizado</span>
+      <button onclick="triggerGitSync()" id="btn-sync-cloud" class="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-1.5 rounded-lg shadow-sm transition">
+        ☁️ Sync GitHub
+      </button>
       <button onclick="saveData()" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm transition">
         Salvar Alterações
       </button>
@@ -410,6 +416,28 @@
       </div>
     </section>
 
+    <!-- TAB 9: ENVIRONMENTS & RIGS DE TREINO IA -->
+    <section id="tab-nodes" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Multi-Environments & Rigs de Treino IA</h2>
+          <p class="text-xs text-slate-400">Status em tempo real das suas estações de trabalho Linux, Windows e máquinas remotas de IA.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="loadNodes()" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+            🔄 Atualizar Status
+          </button>
+          <button onclick="triggerGitSync()" class="text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-semibold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+            ☁️ Sync GitHub Agora
+          </button>
+        </div>
+      </div>
+
+      <div id="nodes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
   </main>
 
   <script>
@@ -434,6 +462,7 @@
         loadWritingData();
         loadBluetoothStatus();
         loadBluetoothDevices();
+        loadNodes();
         document.getElementById('save-status').innerText = 'Sincronizado';
       } catch (e) {
         document.getElementById('save-status').innerText = 'Erro de conexão';
@@ -457,7 +486,7 @@
 
     function switchTab(tab) {
       activeTab = tab;
-      const tabs = ['estudos', 'bluetooth', 'antigravity', 'escrita', 'foco', 'projetos', 'referencias', 'config'];
+      const tabs = ['estudos', 'bluetooth', 'antigravity', 'escrita', 'foco', 'projetos', 'referencias', 'nodes', 'config'];
       tabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
@@ -473,6 +502,7 @@
       if (tab === 'projetos') scanReposWeb();
       if (tab === 'bluetooth') { loadBluetoothStatus(); loadBluetoothDevices(); }
       if (tab === 'antigravity') loadAntigravityProjects();
+      if (tab === 'nodes') loadNodes();
     }
 
     // Disciplinas
@@ -1062,6 +1092,121 @@
       if (!appData.settings) appData.settings = {};
       appData.settings.solid_background = checked;
       saveData();
+    }
+
+    async function loadNodes() {
+      const container = document.getElementById('nodes-container');
+      if (!container) return;
+      try {
+        const res = await fetch('/api/nodes');
+        const data = await res.json();
+        const nodes = data.nodes || [];
+        container.innerHTML = '';
+        if (nodes.length === 0) {
+          container.innerHTML = '<div class="col-span-full p-6 text-center text-slate-500 italic">Nenhum environment registrado ainda.</div>';
+          return;
+        }
+        nodes.forEach(n => {
+          const isLocal = n.is_local;
+          const isWin = n.platform === 'windows';
+          const osIcon = isWin ? '🪟' : '🐧';
+          const isOnline = n.online;
+          const statusDot = isOnline ? '🟢' : '⚫';
+          const gpu = n.gpu || {};
+          const ai = n.ai_training || {};
+
+          let gpuHtml = '<span class="text-slate-500">Sem GPU dedicada</span>';
+          if (gpu.available) {
+            const vramGb = (gpu.vram_used_mb / 1024).toFixed(1);
+            const totalGb = (gpu.vram_total_mb / 1024).toFixed(0);
+            gpuHtml = `<span class="text-amber-400 font-bold">🎮 ${gpu.util_percent}%</span> · <span class="text-slate-300">${vramGb}/${totalGb} GB</span> · <span class="text-slate-400">${gpu.temp_c}°C</span>`;
+          }
+
+          let aiHtml = '';
+          if (ai.active) {
+            aiHtml = `
+              <div class="mt-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                <div class="flex items-center justify-between text-emerald-400 font-bold">
+                  <span>🧠 Treinamento IA Ativo</span>
+                  <span class="animate-pulse text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded">RODANDO</span>
+                </div>
+                <div class="text-slate-200 mt-1 font-semibold">${ai.project || 'Modelo'}</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${ai.progress_hint || ai.command || ''}</div>
+              </div>
+            `;
+          }
+
+          const card = document.createElement('div');
+          card.className = `p-4 rounded-xl border ${isLocal ? 'border-sky-500/40 bg-hud-card/90' : 'border-hud-border bg-hud-card'} space-y-3`;
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-base">${osIcon}</span>
+                  <h3 class="text-sm font-bold text-white">${n.display_name || n.hostname}</h3>
+                  ${isLocal ? '<span class="text-[10px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded font-bold">ESTE PC</span>' : ''}
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">${statusDot} ${isOnline ? 'Online' : 'Offline'} · ${n.role || n.os}</div>
+              </div>
+              ${!isLocal ? `
+                <button onclick="connectNodeRemote('${n.hostname}')" class="text-xs bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-lg transition font-semibold">
+                  🔗 Remote
+                </button>
+              ` : ''}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-hud-border">
+              <div>
+                <span class="text-slate-400">CPU:</span>
+                <span class="text-white font-bold ml-1">${(n.cpu_percent || 0).toFixed(0)}%</span>
+              </div>
+              <div>
+                <span class="text-slate-400">RAM:</span>
+                <span class="text-white font-bold ml-1">${(n.ram_used_gb || 0).toFixed(1)} / ${(n.ram_total_gb || 0).toFixed(0)} GB</span>
+              </div>
+              <div class="col-span-2 text-[11px]">
+                ${gpuHtml}
+              </div>
+            </div>
+
+            ${aiHtml}
+
+            <div class="text-[11px] text-slate-500 truncate pt-1 border-t border-hud-border">
+              📂 ${n.develop_dir || 'develop'}
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        console.error('Erro ao carregar nodes:', e);
+      }
+    }
+
+    async function connectNodeRemote(hostname) {
+      try {
+        await fetch('/api/nodes/remote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hostname: hostname })
+        });
+      } catch (e) {
+        alert('Erro ao disparar controle remoto.');
+      }
+    }
+
+    async function triggerGitSync() {
+      const btn = document.getElementById('btn-sync-cloud');
+      if (btn) btn.innerText = '🔄 Sincronizando...';
+      try {
+        const res = await fetch('/api/git/sync', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Sincronização concluída!');
+        loadNodes();
+      } catch (e) {
+        alert('Erro ao sincronizar com o GitHub.');
+      } finally {
+        if (btn) btn.innerText = '☁️ Sync GitHub';
+      }
     }
 
     loadData();

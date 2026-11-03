@@ -26,12 +26,16 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QThread, pyqtSignal, QTimer, Qt
 
-DEVELOP_DIR = os.path.expanduser("~/develop")
-ANTIGRAVITY_IDE = "/home/usuario/.local/bin/antigravity-ide"
-CONFIG_DIR = os.path.expanduser("~/.config/desktop-hud")
-PINNED_FILE = os.path.join(CONFIG_DIR, "pinned_projects.json")
-ANTIGRAVITY_DB = os.path.expanduser("~/.gemini/antigravity/conversation_summaries.db")
-STORAGE_JSON = os.path.expanduser("~/.config/Antigravity IDE/User/globalStorage/storage.json")
+from modules.env_resolver import (
+    discover_develop_dir, PINNED_FILE, LOCAL_CONFIG_DIR as CONFIG_DIR,
+    get_antigravity_db_path, get_antigravity_storage_path,
+    open_terminal_at, open_in_antigravity, IS_WINDOWS
+)
+from modules.nodes_widget import EnvironmentsMonitorWidget
+
+DEVELOP_DIR = discover_develop_dir()
+ANTIGRAVITY_DB = get_antigravity_db_path()
+STORAGE_JSON = get_antigravity_storage_path()
 
 
 def get_daily_cutoff():
@@ -356,6 +360,10 @@ class DevProductivityWidget(QFrame):
         v_card.addWidget(self.bar_ratio)
         layout.addWidget(self.card_metrics)
 
+        # Multi-Environment & Remote AI Training Rigs Monitor
+        self.envs_widget = EnvironmentsMonitorWidget(self)
+        layout.addWidget(self.envs_widget)
+
         # Search Bar
         self.input_search = QLineEdit()
         self.input_search.setPlaceholderText("🔍 Filtrar projetos Antigravity (nome ou caminho)...")
@@ -404,6 +412,8 @@ class DevProductivityWidget(QFrame):
         self.refresh()
 
     def refresh(self):
+        if hasattr(self, "envs_widget"):
+            self.envs_widget.refresh_nodes()
         if self.scanner_thread and self.scanner_thread.isRunning():
             return
         self.scanner_thread = AntigravityScannerThread()
@@ -566,7 +576,7 @@ class DevProductivityWidget(QFrame):
         else:
             pinned.insert(0, project_name)
 
-        os.makedirs(CONFIG_DIR, exist_ok=True)
+        os.makedirs( os.path.dirname(PINNED_FILE), exist_ok=True)
         try:
             with open(PINNED_FILE, "w", encoding="utf-8") as f:
                 json.dump(pinned, f, indent=2)
@@ -581,7 +591,7 @@ class DevProductivityWidget(QFrame):
             self._open_antigravity(folder)
 
     def _open_terminal(self, path: str):
-        subprocess.Popen(["gnome-terminal", f"--working-directory={path}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        open_terminal_at(path)
 
     def _push_main(self, repo_path: str, repo_name: str):
         if self.push_thread and self.push_thread.isRunning():
@@ -600,10 +610,8 @@ class DevProductivityWidget(QFrame):
             QMessageBox.warning(self, "Falha no Git Push", msg)
 
     def _open_antigravity(self, path: str):
-        if os.path.exists(ANTIGRAVITY_IDE):
-            subprocess.Popen([ANTIGRAVITY_IDE, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            QMessageBox.warning(self, "IDE não encontrada", f"Não foi possível localizar o binário:\n{ANTIGRAVITY_IDE}")
+        if not open_in_antigravity(path):
+            QMessageBox.warning(self, "IDE não encontrada", "Não foi possível localizar o executável do Antigravity IDE nesta máquina.")
 
     def _clear_layout(self, layout):
         while layout.count() > 0:
