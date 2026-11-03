@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desktop HUD · Centro de Comando 24/7</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            hud: {
+              bg: '#0d0f14',
+              card: '#161922',
+              cardHover: '#1c202c',
+              border: 'rgba(255, 255, 255, 0.08)',
+              accent: '#0284c7',
+              accentLight: '#38bdf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0d12;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-hud-border bg-hud-bg/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 font-bold text-lg">
+        ⚡
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+          DESKTOP HUD <span class="text-[10px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full border border-sky-500/20 font-semibold">24/7 LOCALHOST</span>
+        </h1>
+        <p class="text-xs text-slate-400">UFF Engenharia · Antigravity IDE · Universo UVC · Bluetooth & Hardware</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex flex-wrap gap-1 bg-hud-card p-1 rounded-xl border border-hud-border text-xs font-medium">
+      <button onclick="switchTab('estudos')" id="tab-btn-estudos" class="px-3 py-1.5 rounded-lg transition text-white bg-sky-600">
+        🎓 Estudos UFF
+      </button>
+      <button onclick="switchTab('bluetooth')" id="tab-btn-bluetooth" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        🎧 Bluetooth & Áudio
+      </button>
+      <button onclick="switchTab('antigravity')" id="tab-btn-antigravity" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        🪐 Antigravity Projetos
+      </button>
+      <button onclick="switchTab('escrita')" id="tab-btn-escrita" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        ✍️ Escrita & UVC
+      </button>
+      <button onclick="switchTab('foco')" id="tab-btn-foco" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        ⏱️ Modo Foco
+      </button>
+      <button onclick="switchTab('projetos')" id="tab-btn-projetos" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        🚀 Repos & Eng
+      </button>
+      <button onclick="switchTab('referencias')" id="tab-btn-referencias" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        📚 Referências
+      </button>
+      <button onclick="switchTab('config')" id="tab-btn-config" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">
+        ⚙️ Config
+      </button>
+    </nav>
+
+    <!-- Save Status Pill -->
+    <div class="flex items-center gap-3">
+      <span id="save-status" class="text-xs text-slate-500">Sincronizado</span>
+      <button onclick="saveData()" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm transition">
+        Salvar Alterações
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-6 space-y-6">
+
+    <!-- TAB 1: ESTUDOS UFF -->
+    <section id="tab-estudos" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Disciplinas & Avaliações (UFF)</h2>
+          <p class="text-xs text-slate-400">Controle de notas P1, P2, P3, testes e cálculo de aprovação direta (Média ≥ 6.0).</p>
+        </div>
+        <button onclick="addDisciplina()" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+          <span>+ Adicionar Disciplina</span>
+        </button>
+      </div>
+
+      <!-- Tabela de Disciplinas -->
+      <div class="bg-hud-card rounded-xl border border-hud-border overflow-hidden">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-hud-bg/60 text-xs text-slate-400 uppercase tracking-wider border-b border-hud-border">
+            <tr>
+              <th class="px-4 py-3">Disciplina</th>
+              <th class="px-4 py-3 text-center">Nota P1</th>
+              <th class="px-4 py-3 text-center">Nota P2</th>
+              <th class="px-4 py-3 text-center">Nota P3</th>
+              <th class="px-4 py-3 text-center">Média / Situação</th>
+              <th class="px-4 py-3 text-center">Meta Ponderada</th>
+              <th class="px-4 py-3 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="disciplinas-tbody" class="divide-y divide-hud-border">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Calculadora de Média / Regras -->
+      <div class="p-5 rounded-xl bg-hud-card border border-hud-border grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-200">📐 Regras de Avaliação UFF</h3>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            • <b>Cálculo III:</b> Ponderada Peso 2 (P1) e Peso 3 (P2) &nbsp;\( MS = \frac{2P_1 + 3P_2}{5} \ge 6.0 \)<br>
+            • <b>Física II:</b> Média de 3 provas (P1, P2, P3) + testes regulares (<a href="http://localhost:8080" target="_blank" class="text-amber-400 underline">Pfisicas ↗</a>)<br>
+            • <b>Aprovação Direta:</b> Média \( \ge 6.0 \) | VS se entre 4.0 e 5.9
+          </p>
+        </div>
+        <div class="md:col-span-2 bg-hud-bg/40 p-4 rounded-lg border border-hud-border/60 flex flex-col justify-center">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+            <span>Simulador Rápido de P2 (Cálculo III - Peso 2 e 3):</span>
+            <span id="sim-status" class="text-sky-400 font-bold">P1=7.7 -> Meta P2=4.9</span>
+          </div>
+          <div class="flex items-center gap-4 mt-2">
+            <div class="flex-1">
+              <label class="text-[11px] text-slate-400 block mb-1">Nota da P1:</label>
+              <input type="number" step="0.1" id="sim-p1" value="7.7" oninput="calcularMetaP2()" class="w-full bg-hud-card border border-hud-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+            <div class="flex-1">
+              <label class="text-[11px] text-slate-400 block mb-1">Nota necessária na P2 (Meta ≥ 6.0):</label>
+              <div id="sim-meta-res" class="text-xl font-bold text-emerald-400">4.9</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CÁLCULO III MATERIAL DIDÁTICO & LISTAS DE EXERCÍCIOS -->
+      <div class="bg-hud-card rounded-xl border border-hud-border p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>📚 Material Didático & Listas de Exercícios (Cálculo III)</span>
+              <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-semibold">~/Downloads/calc</span>
+            </h3>
+            <p class="text-xs text-slate-400">Apostila completa, cronograma do período e listas EP1 a EP15 com enunciados e gabaritos.</p>
+          </div>
+          <button onclick="loadCalcFiles()" class="text-xs bg-hud-cardHover text-sky-400 border border-hud-border px-3 py-1.5 rounded-lg transition">
+            🔄 Recarregar Arquivos
+          </button>
+        </div>
+
+        <!-- Quick Access PDFs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="p-4 bg-hud-bg/60 rounded-xl border border-hud-border flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">📑</span>
+              <div>
+                <h4 class="text-sm font-bold text-white">Apostila Completa Cálculo III-A</h4>
+                <p class="text-xs text-slate-400">Teoria, exercícios resolvidos e notas de aula (3.0 MB)</p>
+              </div>
+            </div>
+            <button onclick="openCalcFile('/home/usuario/Downloads/calc/Apostila-CálculoIIIA-completa.pdf')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded-lg transition">
+              📖 Abrir PDF
+            </button>
+          </div>
+
+          <div class="p-4 bg-hud-bg/60 rounded-xl border border-hud-border flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">📅</span>
+              <div>
+                <h4 class="text-sm font-bold text-white">Cronograma Oficial 2026.2</h4>
+                <p class="text-xs text-slate-400">Prazos de provas, datas das listas e ementa UFF</p>
+              </div>
+            </div>
+            <button onclick="openCalcFile('/home/usuario/Downloads/calc/Cronograma 2026.2_atualizado.pdf')" class="text-xs bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-lg transition">
+              📖 Abrir PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Exercise Lists (EPs) Filter & Grid -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Listas de Exercícios (EPs & Gabaritos)</h4>
+            <input type="text" id="calc-search" oninput="filterCalcFiles(this.value)" placeholder="🔍 Filtrar EP (ex: Green, Tripla, Superficie)..." class="text-xs bg-hud-bg/80 border border-hud-border rounded-lg px-3 py-1 text-white w-64 focus:outline-none focus:border-sky-500">
+          </div>
+
+          <div id="calc-files-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Dynamic EP cards -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: BLUETOOTH & ÁUDIO -->
+    <section id="tab-bluetooth" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🎧 Painel Bluetooth & Dispositivos de Áudio</span>
+          </h2>
+          <p class="text-xs text-slate-400">Conecte seus fones TWS, caixa de som JBL, gamepad ou módulo ESP32 com 1 clique.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="scanBluetoothWeb()" id="btn-scan-bt" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm">
+            <span id="scan-spinner" class="hidden animate-spin">🔄</span>
+            <span>🔍 Escanear Dispositivos (5s)</span>
+          </button>
+          <button onclick="toggleBTPower()" id="btn-power-bt" class="text-xs bg-hud-card hover:bg-hud-cardHover text-slate-300 border border-hud-border px-3 py-2 rounded-lg transition">
+            Power: Verificando...
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Toast / Alert Box -->
+      <div id="bt-alert" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center justify-between">
+        <span id="bt-alert-msg"></span>
+        <button onclick="document.getElementById('bt-alert').classList.add('hidden')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <!-- Devices Grid -->
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Dispositivos Pareados & Reconhecidos</h3>
+          <div id="bt-devices-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Dynamic bluetooth cards -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PROJETOS ANTIGRAVITY -->
+    <section id="tab-antigravity" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🪐 Projetos Antigravity & Workspaces</span>
+            <span id="ag-count-badge" class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-semibold">23 projetos</span>
+          </h2>
+          <p class="text-xs text-slate-400">Administre sessões, histórico de conversas do agente, git branches e abra com 1 clique no Antigravity IDE.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="ag-search" oninput="filterAntigravityProjects(this.value)" placeholder="🔍 Filtrar projetos..." class="text-xs bg-hud-card border border-hud-border rounded-lg px-3 py-2 text-white w-64 focus:outline-none focus:border-sky-500">
+          <button onclick="loadAntigravityProjects()" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-hud-border px-3 py-2 rounded-lg transition">
+            🔄 Atualizar
+          </button>
+        </div>
+      </div>
+
+      <div id="ag-projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Dynamic Antigravity cards -->
+      </div>
+    </section>
+
+    <!-- TAB 4: ESCRITA & UNIVERSO UVC -->
+    <section id="tab-escrita" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>✍️ Universo UVC & Red Right Hand</span>
+          </h2>
+          <p class="text-xs text-slate-400">Controle de palavras diárias (cutoff às 06:00), capítulos canônicos e acervo de lore.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="promptNovoCapitulo()" class="text-xs bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+            <span>+ Novo Capítulo</span>
+          </button>
+          <button onclick="openIDE('/home/usuario/develop/UVC')" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-hud-border px-3 py-2 rounded-lg transition">
+            ⚡ Abrir UVC no IDE
+          </button>
+        </div>
+      </div>
+
+      <!-- Writing Stats Banner -->
+      <div class="p-5 rounded-xl bg-hud-card border border-hud-border grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total do Livro</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="writing-total-words">2.503 palavras</div>
+          <span class="text-xs text-purple-400 mt-0.5 block">6 capítulos canônicos</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Palavras Hoje (desde 06:00)</span>
+          <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="writing-today-words">0 palavras</div>
+          <span class="text-xs text-slate-400 mt-0.5 block">Nenhum commit/edição hoje</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Acervo UVC</span>
+          <div class="text-2xl font-extrabold text-sky-400 mt-1">31 Personagens</div>
+          <span class="text-xs text-slate-400 mt-0.5 block">5 Facções · 10 Artigos de Lore</span>
+        </div>
+      </div>
+
+      <!-- Chapters List -->
+      <div class="bg-hud-card rounded-xl border border-hud-border overflow-hidden">
+        <div class="px-5 py-3 border-b border-hud-border bg-hud-bg/60 flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Capítulos de Red Right Hand</span>
+          <span class="text-xs text-slate-400">Clique para abrir direto no Antigravity IDE</span>
+        </div>
+        <div id="writing-chapters-list" class="divide-y divide-hud-border">
+          <!-- Dynamic chapters -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: MODO FOCO -->
+    <section id="tab-foco" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">⏱️ Modo Foco & Bloqueio Real de Distrações</h2>
+          <p class="text-xs text-slate-400">Bloqueia tráfego de redes sociais no nível de proxy de rede do GNOME e silencia notificações.</p>
+        </div>
+      </div>
+
+      <div class="p-6 bg-hud-card rounded-xl border border-hud-border text-center space-y-4 max-w-xl mx-auto">
+        <div class="text-5xl font-extrabold text-white tracking-tight" id="timer-display">25:00</div>
+        <p id="focus-status-text" class="text-xs text-slate-400">Modo foco inativo. Clique abaixo para iniciar.</p>
+
+        <div class="flex justify-center gap-3">
+          <button onclick="toggleFocus()" id="btn-start-focus" class="px-6 py-2.5 rounded-xl font-bold text-sm bg-sky-600 hover:bg-sky-500 text-white shadow-lg transition">
+            Iniciar Modo Foco (25 min)
+          </button>
+          <button onclick="resetTimer()" class="px-4 py-2.5 rounded-xl text-xs bg-hud-card hover:bg-hud-cardHover text-slate-300 border border-hud-border transition">
+            Resetar
+          </button>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-hud-border text-left space-y-2">
+          <div class="text-xs font-bold text-slate-300">🛡️ Proteções Ativadas Durante a Sessão:</div>
+          <ul class="text-xs text-slate-400 space-y-1 list-disc list-inside">
+            <li><b>Bloqueio de Rede via PAC:</b> WhatsApp Web, Instagram, Twitter/X, Reddit, TikTok e Facebook.</li>
+            <li><b>Silenciamento Total:</b> Banners de notificação do sistema GNOME desativados.</li>
+            <li><b>Janelas Invasivas:</b> Minimiza automaticamente abas e janelas de distração abertas.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: REPOS & ENG -->
+    <section id="tab-projetos" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Repositórios Git & Projetos de Engenharia</h2>
+          <p class="text-xs text-slate-400">Suba alterações para o GitHub com 1 clique e abra projetos no Antigravity IDE.</p>
+        </div>
+        <button onclick="scanReposWeb()" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg transition">
+          🔄 Re-escanear ~/develop
+        </button>
+      </div>
+
+      <div id="repos-list" class="space-y-3">
+        <!-- Dynamic list -->
+      </div>
+    </section>
+
+    <!-- TAB 7: REFERENCIAS -->
+    <section id="tab-referencias" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Biblioteca de Referências & Documentações</h2>
+          <p class="text-xs text-slate-400">Links rápidos, pinouts, datasheets e anotações técnicas.</p>
+        </div>
+        <button onclick="addReferencia()" class="text-xs bg-hud-card hover:bg-hud-cardHover text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg transition">
+          + Adicionar Link
+        </button>
+      </div>
+
+      <div id="referencias-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Dynamic cards -->
+      </div>
+    </section>
+
+    <!-- TAB 8: CONFIG -->
+    <section id="tab-config" class="hidden space-y-6">
+      <div>
+        <h2 class="text-lg font-bold text-white">Configurações do Desktop HUD</h2>
+        <p class="text-xs text-slate-400">Personalize o comportamento visual e parâmetros do sistema.</p>
+      </div>
+
+      <div class="bg-hud-card rounded-xl border border-hud-border p-5 space-y-4 max-w-xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-white">Modo Sólido (Área de Trabalho)</h4>
+            <p class="text-xs text-slate-400">Desativa a transparência e usa fundo escuro sólido para máxima legibilidade.</p>
+          </div>
+          <input type="checkbox" id="cfg-solid" onchange="toggleSolidMode(this.checked)" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-hud-border">
+        </div>
+
+        <div class="pt-4 border-t border-hud-border">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Comandos do Protocolo HUD-Log</h4>
+          <p class="text-xs text-slate-400 mt-1">Você pode registrar métricas diretamente do seu terminal:</p>
+          <div class="bg-hud-bg p-3 rounded font-mono text-[11px] text-slate-300 mt-2 space-y-1">
+            <div><span class="text-sky-400">hud-log</span> study --subject calculo3 --questions 2 --min 30</div>
+            <div><span class="text-emerald-400">hud-log</span> writing --words 450 --chapter 5</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let appData = {};
+    let allCalcFiles = [];
+    let allAntigravityProjects = [];
+    let isFocusing = false;
+    let timerInterval = null;
+    let secondsLeft = 25 * 60;
+    let activeTab = 'estudos';
+    let btPowered = false;
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data');
+        appData = await res.json();
+        renderDisciplinas();
+        renderReferencias();
+        renderConfig();
+        loadCalcFiles();
+        loadAntigravityProjects();
+        loadWritingData();
+        loadBluetoothStatus();
+        loadBluetoothDevices();
+        document.getElementById('save-status').innerText = 'Sincronizado';
+      } catch (e) {
+        document.getElementById('save-status').innerText = 'Erro de conexão';
+      }
+    }
+
+    async function saveData() {
+      document.getElementById('save-status').innerText = 'Salvando...';
+      try {
+        await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(appData)
+        });
+        document.getElementById('save-status').innerText = 'Salvo com sucesso';
+        setTimeout(() => { document.getElementById('save-status').innerText = 'Sincronizado'; }, 2000);
+      } catch (e) {
+        document.getElementById('save-status').innerText = 'Erro ao salvar';
+      }
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const tabs = ['estudos', 'bluetooth', 'antigravity', 'escrita', 'foco', 'projetos', 'referencias', 'config'];
+      tabs.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (sec) sec.classList.toggle('hidden', t !== tab);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "px-3 py-1.5 rounded-lg transition text-white bg-sky-600 font-bold shadow-sm";
+          } else {
+            btn.className = "px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white";
+          }
+        }
+      });
+      if (tab === 'projetos') scanReposWeb();
+      if (tab === 'bluetooth') { loadBluetoothStatus(); loadBluetoothDevices(); }
+      if (tab === 'antigravity') loadAntigravityProjects();
+    }
+
+    // Disciplinas
+    function renderDisciplinas() {
+      const tbody = document.getElementById('disciplinas-tbody');
+      tbody.innerHTML = '';
+      const list = appData.estudos?.disciplinas || [];
+
+      list.forEach((d, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-hud-cardHover/50 transition";
+
+        let mediaDisplay = '-';
+        let metaDisplay = '-';
+
+        if (d.id === 'calculo3') {
+          if (d.p1 !== null && d.p2 !== null) {
+            const ms = ((d.p1 * 2) + (d.p2 * 3)) / 5;
+            mediaDisplay = `<b class="${ms >= 6.0 ? 'text-emerald-400' : 'text-rose-400'}">${ms.toFixed(1)}</b>`;
+          } else if (d.p1 !== null) {
+            mediaDisplay = `<span class="text-slate-400">Pendente P2</span>`;
+          }
+          metaDisplay = `<span class="text-emerald-400 font-semibold">P2 ≥ ${d.meta_p2 || 4.9}</span>`;
+        } else if (d.id === 'fisica2') {
+          if (d.p1 !== null && d.p2 !== null) {
+            const avg12 = (d.p1 + d.p2) / 2;
+            mediaDisplay = `<span class="text-sky-400 font-bold">${avg12.toFixed(1)} (P1+P2/2)</span>`;
+          }
+          const p3Val = d.p3 !== null ? d.p3 : 'Pendente';
+          metaDisplay = `<span class="text-amber-400 font-semibold">P3: ${p3Val}</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-white">
+            ${d.nome}
+            ${d.prioridade === 'alta' ? '<span class="ml-2 text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded font-bold">FOCO</span>' : ''}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <input type="number" step="0.1" value="${d.p1 !== null ? d.p1 : ''}" onchange="updateNota(${idx}, 'p1', this.value)" class="w-16 bg-hud-bg border border-hud-border rounded px-2 py-1 text-center text-sm font-semibold text-sky-400">
+          </td>
+          <td class="px-4 py-3 text-center">
+            <input type="number" step="0.1" value="${d.p2 !== null ? d.p2 : ''}" onchange="updateNota(${idx}, 'p2', this.value)" class="w-16 bg-hud-bg border border-hud-border rounded px-2 py-1 text-center text-sm font-semibold text-white">
+          </td>
+          <td class="px-4 py-3 text-center">
+            <input type="number" step="0.1" value="${d.p3 !== null ? d.p3 : ''}" onchange="updateNota(${idx}, 'p3', this.value)" placeholder="P3" class="w-16 bg-hud-bg border border-hud-border rounded px-2 py-1 text-center text-sm font-semibold text-amber-400">
+          </td>
+          <td class="px-4 py-3 text-center">${mediaDisplay}</td>
+          <td class="px-4 py-3 text-center text-xs">${metaDisplay}</td>
+          <td class="px-4 py-3 text-right">
+            ${d.id === 'fisica2' ? '<a href="http://localhost:8080" target="_blank" class="text-xs text-purple-400 hover:underline mr-2">🚀 Simulador</a>' : ''}
+            <button onclick="removeDisciplina(${idx})" class="text-xs text-rose-400 hover:text-rose-300">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateNota(idx, campo, val) {
+      if (!appData.estudos?.disciplinas) return;
+      appData.estudos.disciplinas[idx][campo] = val === '' ? null : parseFloat(val);
+      renderDisciplinas();
+      saveData();
+    }
+
+    function calcularMetaP2() {
+      const p1 = parseFloat(document.getElementById('sim-p1').value) || 0;
+      const meta = (30 - (2 * p1)) / 3;
+      const el = document.getElementById('sim-meta-res');
+      el.innerText = Math.max(0, meta).toFixed(1);
+      document.getElementById('sim-status').innerText = `Com P1=${p1.toFixed(1)}, precisa de ${Math.max(0, meta).toFixed(1)} na P2`;
+    }
+
+    // Cálculo III Files
+    async function loadCalcFiles() {
+      try {
+        const res = await fetch('/api/calc/files');
+        allCalcFiles = await res.json();
+        renderCalcFiles(allCalcFiles);
+      } catch (e) {}
+    }
+
+    function renderCalcFiles(files) {
+      const grid = document.getElementById('calc-files-grid');
+      grid.innerHTML = '';
+
+      const epFiles = files.filter(f => f.category && f.category.includes('Listas'));
+      if (epFiles.length === 0) {
+        grid.innerHTML = '<div class="text-xs text-slate-400 col-span-3">Nenhum arquivo encontrado em ~/Downloads/calc.</div>';
+        return;
+      }
+
+      epFiles.forEach(f => {
+        const card = document.createElement('div');
+        card.className = "p-3 bg-hud-bg/70 hover:bg-hud-bg rounded-lg border border-hud-border flex items-center justify-between text-xs";
+        
+        let isGabarito = f.name.toLowerCase().includes('gabarito');
+        let icon = isGabarito ? '💡' : '📝';
+        let label = f.name.replace('.pdf', '').replace(/-/g, ' ');
+        if (label.length > 38) label = label.substring(0, 36) + '...';
+
+        card.innerHTML = `
+          <div class="truncate mr-2">
+            <div class="font-semibold text-white flex items-center gap-1.5 truncate">
+              <span>${icon}</span>
+              <span class="truncate" title="${f.name}">${label}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">${f.category.replace('Listas de exercícios/', '')}</div>
+          </div>
+          <button onclick="openCalcFile('${f.path}')" class="text-[11px] bg-sky-600/30 hover:bg-sky-600 text-sky-300 hover:text-white px-2.5 py-1 rounded font-semibold transition shrink-0">
+            Abrir
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterCalcFiles(q) {
+      if (!q.trim()) {
+        renderCalcFiles(allCalcFiles);
+        return;
+      }
+      const qLow = q.toLowerCase();
+      const filtered = allCalcFiles.filter(f => f.name.toLowerCase().includes(qLow) || f.category.toLowerCase().includes(qLow));
+      renderCalcFiles(filtered);
+    }
+
+    async function openCalcFile(path) {
+      try {
+        await fetch('/api/calc/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path })
+        });
+      } catch (e) {
+        alert('Erro ao abrir arquivo.');
+      }
+    }
+
+    // Bluetooth Panel
+    async function loadBluetoothStatus() {
+      try {
+        const res = await fetch('/api/bluetooth/status');
+        const data = await res.json();
+        btPowered = data.powered || false;
+        const btn = document.getElementById('btn-power-bt');
+        if (btPowered) {
+          btn.innerText = `🟢 Bluetooth Ligado (${data.name || 'policorp'})`;
+          btn.className = "text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-2 rounded-lg font-bold transition";
+        } else {
+          btn.innerText = '⚫ Bluetooth Desligado';
+          btn.className = "text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-2 rounded-lg font-bold transition";
+        }
+      } catch (e) {}
+    }
+
+    async function toggleBTPower() {
+      const next = !btPowered;
+      try {
+        await fetch('/api/bluetooth/power', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ power: next })
+        });
+        loadBluetoothStatus();
+        setTimeout(loadBluetoothDevices, 1000);
+      } catch (e) {}
+    }
+
+    async function loadBluetoothDevices() {
+      const container = document.getElementById('bt-devices-list');
+      try {
+        const res = await fetch('/api/bluetooth/devices');
+        const devices = await res.json();
+        container.innerHTML = '';
+
+        if (devices.length === 0) {
+          container.innerHTML = '<div class="text-xs text-slate-400 col-span-3">Nenhum dispositivo encontrado. Clique em Escanear.</div>';
+          return;
+        }
+
+        devices.forEach(d => {
+          const card = document.createElement('div');
+          card.className = "p-4 bg-hud-card hover:bg-hud-cardHover rounded-xl border border-hud-border flex flex-col justify-between transition";
+          
+          let icon = '📶';
+          if (d.icon === 'audio') icon = '🎧';
+          else if (d.icon === 'mouse') icon = '🖱️';
+          else if (d.icon === 'controller') icon = '🎮';
+
+          let statusBadge = d.connected 
+            ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded font-bold">🟢 Conectado</span>'
+            : (d.paired ? '<span class="text-[10px] bg-sky-500/20 text-sky-400 border border-sky-500/40 px-2 py-0.5 rounded font-bold">🔵 Pareado</span>' : '<span class="text-[10px] text-slate-500">⚪ Desconectado</span>');
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-2xl">${icon}</span>
+                ${statusBadge}
+              </div>
+              <h4 class="text-sm font-bold text-white mt-2 truncate">${d.name}</h4>
+              <p class="text-xs text-slate-400 font-mono mt-0.5">${d.mac}</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-hud-border flex items-center justify-between gap-2">
+              ${d.connected 
+                ? `<button onclick="disconnectBT('${d.mac}')" class="text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold px-3 py-1.5 rounded-lg transition w-full">Desconectar</button>`
+                : `<button onclick="connectBT('${d.mac}')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-lg transition w-full">Conectar</button>`
+              }
+              ${!d.paired ? `<button onclick="pairBT('${d.mac}')" class="text-xs bg-hud-cardHover border border-hud-border text-slate-300 px-2.5 py-1.5 rounded-lg transition">Parear</button>` : ''}
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        container.innerHTML = '<div class="text-xs text-rose-400 col-span-3">Erro ao carregar dispositivos Bluetooth.</div>';
+      }
+    }
+
+    async function scanBluetoothWeb() {
+      const spinner = document.getElementById('scan-spinner');
+      const btn = document.getElementById('btn-scan-bt');
+      spinner.classList.remove('hidden');
+      btn.disabled = true;
+      showBTAlert('Escanendo dispositivos próximos por 5 segundos...', 'info');
+
+      try {
+        const res = await fetch('/api/bluetooth/scan', { method: 'POST' });
+        const devices = await res.json();
+        loadBluetoothDevices();
+        showBTAlert(`Varredura concluída! ${devices.length || 0} dispositivos encontrados.`, 'success');
+      } catch (e) {
+        showBTAlert('Erro durante varredura Bluetooth.', 'error');
+      } finally {
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+      }
+    }
+
+    async function connectBT(mac) {
+      showBTAlert(`Conectando a ${mac}...`, 'info');
+      try {
+        const res = await fetch('/api/bluetooth/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mac })
+        });
+        const out = await res.json();
+        showBTAlert(out.message || 'Comando enviado.', out.status === 'ok' ? 'success' : 'error');
+        loadBluetoothDevices();
+      } catch (e) {
+        showBTAlert('Erro ao conectar dispositivo.', 'error');
+      }
+    }
+
+    async function disconnectBT(mac) {
+      showBTAlert(`Desconectando ${mac}...`, 'info');
+      try {
+        const res = await fetch('/api/bluetooth/disconnect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mac })
+        });
+        const out = await res.json();
+        showBTAlert(out.message || 'Desconectado.', 'info');
+        loadBluetoothDevices();
+      } catch (e) {
+        showBTAlert('Erro ao desconectar.', 'error');
+      }
+    }
+
+    async function pairBT(mac) {
+      showBTAlert(`Pareando com ${mac}...`, 'info');
+      try {
+        const res = await fetch('/api/bluetooth/pair', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mac })
+        });
+        const out = await res.json();
+        showBTAlert(out.message || 'Pareamento executado.', out.status === 'ok' ? 'success' : 'error');
+        loadBluetoothDevices();
+      } catch (e) {
+        showBTAlert('Erro ao parear.', 'error');
+      }
+    }
+
+    function showBTAlert(msg, type) {
+      const box = document.getElementById('bt-alert');
+      const text = document.getElementById('bt-alert-msg');
+      text.innerText = msg;
+      box.classList.remove('hidden');
+      if (type === 'success') {
+        box.className = "p-3 rounded-xl text-xs font-semibold flex items-center justify-between bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+      } else if (type === 'error') {
+        box.className = "p-3 rounded-xl text-xs font-semibold flex items-center justify-between bg-rose-500/20 text-rose-300 border border-rose-500/40";
+      } else {
+        box.className = "p-3 rounded-xl text-xs font-semibold flex items-center justify-between bg-sky-500/20 text-sky-300 border border-sky-500/40";
+      }
+    }
+
+    // Antigravity Projects
+    async function loadAntigravityProjects() {
+      try {
+        const res = await fetch('/api/antigravity/projects');
+        allAntigravityProjects = await res.json();
+        document.getElementById('ag-count-badge').innerText = `${allAntigravityProjects.length} projetos`;
+        renderAntigravityProjects(allAntigravityProjects);
+      } catch (e) {}
+    }
+
+    function renderAntigravityProjects(projects) {
+      const grid = document.getElementById('ag-projects-grid');
+      grid.innerHTML = '';
+
+      if (projects.length === 0) {
+        grid.innerHTML = '<div class="text-xs text-slate-400 col-span-3">Nenhum projeto Antigravity encontrado.</div>';
+        return;
+      }
+
+      projects.forEach(p => {
+        const card = document.createElement('div');
+        card.className = "p-4 bg-hud-card hover:bg-hud-cardHover rounded-xl border border-hud-border flex flex-col justify-between transition";
+
+        let dirtyBadge = p.dirty > 0
+          ? `<span class="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-semibold">📝 ${p.dirty} pendentes</span>`
+          : '<span class="text-[10px] text-emerald-400">✓ Limpo</span>';
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>🪐</span>
+                <span class="truncate">${p.name}</span>
+              </span>
+              ${p.convo_count > 0 ? `<span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-bold">💬 ${p.convo_count}</span>` : ''}
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono mt-1 truncate">${p.path}</p>
+            <div class="flex items-center gap-2 mt-2">
+              ${p.branch ? `<span class="text-[10px] bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">🌱 ${p.branch}</span>` : ''}
+              ${dirtyBadge}
+            </div>
+            ${p.last_title ? `<p class="text-xs text-slate-400 italic mt-2 truncate">"${p.last_title}"</p>` : ''}
+          </div>
+          <div class="mt-4 pt-3 border-t border-hud-border flex items-center justify-between gap-2">
+            <button onclick="openTerminal('${p.path}')" class="text-xs bg-hud-cardHover hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-hud-border transition">
+              💻 Terminal
+            </button>
+            <button onclick="openIDE('${p.path}')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded-lg transition flex-1 text-center">
+              ⚡ Antigravity IDE
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterAntigravityProjects(q) {
+      if (!q.trim()) {
+        renderAntigravityProjects(allAntigravityProjects);
+        return;
+      }
+      const qLow = q.toLowerCase();
+      const filtered = allAntigravityProjects.filter(p => p.name.toLowerCase().includes(qLow) || p.path.toLowerCase().includes(qLow) || (p.last_title && p.last_title.toLowerCase().includes(qLow)));
+      renderAntigravityProjects(filtered);
+    }
+
+    async function openTerminal(path) {
+      fetch('/api/antigravity/terminal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      });
+    }
+
+    // Escrita
+    async function loadWritingData() {
+      try {
+        const res = await fetch('/api/writing');
+        const data = await res.json();
+        document.getElementById('writing-total-words').innerText = `${data.total_words?.toLocaleString() || 0} palavras`;
+        document.getElementById('writing-today-words').innerText = `${data.words_today?.toLocaleString() || 0} palavras`;
+
+        const list = document.getElementById('writing-chapters-list');
+        list.innerHTML = '';
+        const chaps = data.chapters || [];
+
+        chaps.forEach(c => {
+          const div = document.createElement('div');
+          div.className = "px-5 py-3 flex items-center justify-between hover:bg-hud-cardHover/50 transition";
+          div.innerHTML = `
+            <div>
+              <span class="font-bold text-white text-sm">${c.filename}</span>
+              <span class="text-xs text-slate-400 ml-3">${c.words} palavras</span>
+              ${c.is_today ? '<span class="ml-2 text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">HOJE</span>' : ''}
+            </div>
+            <button onclick="openIDE('${c.path}')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1 rounded-lg transition">
+              ✍️ Escrever no IDE
+            </button>
+          `;
+          list.appendChild(div);
+        });
+      } catch (e) {}
+    }
+
+    async function promptNovoCapitulo() {
+      const title = prompt('Título do novo capítulo (ex: A Conquista de Severum):');
+      if (!title) return;
+      try {
+        const res = await fetch('/api/writing/chapter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title })
+        });
+        const out = await res.json();
+        if (out.path) {
+          openIDE(out.path);
+          loadWritingData();
+        }
+      } catch (e) {
+        alert('Erro ao criar capítulo!');
+      }
+    }
+
+    // Referencias
+    function renderReferencias() {
+      const grid = document.getElementById('referencias-grid');
+      grid.innerHTML = '';
+      const list = appData.referencias || [];
+
+      list.forEach((r, idx) => {
+        const card = document.createElement('div');
+        card.className = "p-4 bg-hud-card hover:bg-hud-cardHover rounded-xl border border-hud-border transition flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">${r.category || 'Geral'}</span>
+              <button onclick="removeReferencia(${idx})" class="text-slate-500 hover:text-rose-400 text-xs">✕</button>
+            </div>
+            <h4 class="font-bold text-white text-sm mt-2">${r.title}</h4>
+            <p class="text-xs text-slate-400 truncate mt-1">${r.url}</p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-hud-border flex justify-end">
+            <a href="${r.url}" target="_blank" class="text-xs bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-semibold px-3 py-1.5 rounded-lg transition">
+              Abrir Link ↗
+            </a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function addReferencia() {
+      const title = prompt('Título da Referência / Documentação:');
+      if (!title) return;
+      const url = prompt('URL / Link:');
+      if (!url) return;
+      const category = prompt('Categoria (hardware, estudos, dev):', 'estudos') || 'estudos';
+
+      if (!appData.referencias) appData.referencias = [];
+      appData.referencias.push({ title, url, category });
+      renderReferencias();
+      saveData();
+    }
+
+    function removeReferencia(idx) {
+      appData.referencias.splice(idx, 1);
+      renderReferencias();
+      saveData();
+    }
+
+    // Focus
+    function toggleFocus() {
+      if (isFocusing) stopFocus();
+      else startFocus();
+    }
+
+    function startFocus() {
+      isFocusing = true;
+      document.getElementById('btn-start-focus').innerText = 'Pausar Modo Foco';
+      document.getElementById('btn-start-focus').className = "px-6 py-2.5 rounded-xl font-bold text-sm bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition";
+      document.getElementById('focus-status-text').innerText = '🟢 Modo Foco ATIVO (Redes Sociais & Notificações Bloqueadas)';
+      document.getElementById('focus-status-text').className = "text-xs text-emerald-400 font-semibold";
+
+      fetch('/api/focus/start', { method: 'POST' });
+
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        updateTimerDisplay();
+        if (secondsLeft <= 0) {
+          stopFocus();
+          alert('🎉 Sessão de foco concluída! Faça uma pausa de 5 minutos.');
+        }
+      }, 1000);
+    }
+
+    function stopFocus() {
+      isFocusing = false;
+      clearInterval(timerInterval);
+      document.getElementById('btn-start-focus').innerText = 'Retomar Sessão';
+      document.getElementById('btn-start-focus').className = "px-6 py-2.5 rounded-xl font-bold text-sm bg-sky-600 hover:bg-sky-500 text-white shadow-lg transition";
+      document.getElementById('focus-status-text').innerText = 'Modo Foco em pausa.';
+      document.getElementById('focus-status-text').className = "text-xs text-slate-400";
+      fetch('/api/focus/stop', { method: 'POST' });
+    }
+
+    function resetTimer() {
+      stopFocus();
+      secondsLeft = 25 * 60;
+      updateTimerDisplay();
+      document.getElementById('btn-start-focus').innerText = 'Iniciar Modo Foco (25 min)';
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+      const s = (secondsLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    // Repos
+    async function scanReposWeb() {
+      const container = document.getElementById('repos-list');
+      container.innerHTML = '<div class="text-xs text-slate-400">Escaneando repositórios em ~/develop...</div>';
+      try {
+        const res = await fetch('/api/repos');
+        const repos = await res.json();
+        container.innerHTML = '';
+
+        repos.forEach(r => {
+          const div = document.createElement('div');
+          div.className = "p-4 bg-hud-card rounded-xl border border-hud-border flex items-center justify-between";
+          div.innerHTML = `
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-sm">${r.name}</span>
+                ${r.has_hud ? '<span class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-semibold">⚡ Eng .hud.json</span>' : ''}
+              </div>
+              <div class="text-xs text-slate-400 mt-1">
+                ${r.uncommitted > 0 ? `<span class="text-sky-400 font-semibold">📝 ${r.uncommitted} alterações pendentes</span>` : '<span class="text-emerald-400">✓ Limpo</span>'}
+                ${r.diff_lines ? `· <span class="text-emerald-400">+${r.diff_lines.add}</span> / <span class="text-rose-400">-${r.diff_lines.del}</span>` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="pushMain('${r.name}')" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold px-3 py-1.5 rounded-lg transition">
+                🚀 Push main
+              </button>
+              <button onclick="openIDE('${r.path}')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-lg transition">
+                ⚡ Antigravity IDE
+              </button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = '<div class="text-xs text-rose-400">Erro ao carregar repositórios.</div>';
+      }
+    }
+
+    async function pushMain(repoName) {
+      if (!confirm(`Deseja rodar 'git push origin main' no repositório ${repoName}?`)) return;
+      try {
+        const res = await fetch('/api/git/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repo: repoName })
+        });
+        const out = await res.json();
+        alert(out.message || 'Push executado!');
+        scanReposWeb();
+      } catch (e) {
+        alert('Erro ao executar git push!');
+      }
+    }
+
+    async function openIDE(path) {
+      fetch('/api/open-ide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      });
+    }
+
+    function renderConfig() {
+      const isSolid = appData.settings?.solid_background || false;
+      document.getElementById('cfg-solid').checked = isSolid;
+    }
+
+    function toggleSolidMode(checked) {
+      if (!appData.settings) appData.settings = {};
+      appData.settings.solid_background = checked;
+      saveData();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
