@@ -1,52 +1,56 @@
 #!/usr/bin/env python3
 """
-Dev & Hardware Desktop HUD (Interactive Rainmeter-style widget for Linux/GNOME)
+Dev & Hardware Desktop HUD (Universal Cross-Platform Edition: Linux, Windows, macOS)
 Features:
-- Global Windows VM status badge next to Clock
-- Pin on Top vs Dock on Desktop background (_NET_WM_STATE_BELOW / ABOVE)
-- Solid vs Glassmorphism background toggle
-- Collapsible mode (shrinks to sleek top bar pill)
-- Freely resizable window with QSizeGrip and persistent dimensions
-- Tabbed organization: Dev, IA & RL, Eng & Hardware, Escrita (UVC), Estudos (UFF)
-- Antigravity IDE integration
+- SingleInstance lock (prevents duplicate HUD windows)
+- Rotating logs & uncaught exception hook (safe under pythonw.exe)
+- Background HeartbeatService & GitSyncManager (detached bot commits)
+- Cross-platform window layering (wmctrl on Linux X11, Win32 SetWindowPos on Windows)
 - Bidirectional AI-HUD communication protocol via QFileSystemWatcher
-- 24/7 Localhost Web Dashboard integration
 """
 
-import sys
 import os
-import json
-import subprocess
+import sys
 
-# Add project root to path
 base_dir = os.path.dirname(os.path.realpath(__file__))
 if base_dir not in sys.path:
     sys.path.insert(0, base_dir)
 
+from PyQt6.QtCore import QFileSystemWatcher, QPoint, QRect, QTimer, Qt
+from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QSystemTrayIcon, QMenu, QTabWidget, QSizeGrip
+    QApplication,
+    QHBoxLayout,
+    QMenu,
+    QPushButton,
+    QSizeGrip,
+    QSystemTrayIcon,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, QPoint, QRect, QTimer, QFileSystemWatcher
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 
-from styles import HUD_STYLESHEET
+from core import launchers, paths, proc
+from core.agy_rule import install_rule
+from core.git_sync import GitSyncManager
+from core.logs import get_logger, setup_logging
+from core.nodes import HeartbeatService, write_local_heartbeat
+from core.osinfo import IS_LINUX, IS_VM_HOST, IS_WINDOWS, VM_SCRIPT
+from core.settings import HUD_LOCK_PORT, WEB_PORT
+from core.single_instance import SingleInstance
+from core.storage import load_local_ui, save_local_ui
+from core.workspace import discover_develop_dir
 from modules.clock_widget import ClockWidget
 from modules.dev_widget import DevProductivityWidget
 from modules.eng_widget import EngHardwareWidget
-from modules.writing_widget import WritingProductivityWidget
 from modules.study_widget import StudyWidget
-from modules.env_resolver import (
-    DATA_PATH, EVENTS_FILE, LOCAL_CONFIG_DIR,
-    load_local_ui, save_local_ui, IS_MAIN_LINUX_VM_HOST,
-    IS_WINDOWS, IS_LINUX, discover_develop_dir, open_file_or_url,
-    open_terminal_at, install_antigravity_global_rule, VM_SCRIPT
-)
-from modules.git_sync import GitSyncManager
-from modules.nodes_widget import update_local_node_heartbeat
+from modules.writing_widget import WritingProductivityWidget
+from styles import HUD_STYLESHEET
 
 DEFAULT_WIDTH = 450
 DEFAULT_HEIGHT = 760
+
+log = get_logger("hud.main")
 
 
 class DesktopHUDWindow(QWidget):
@@ -59,12 +63,13 @@ class DesktopHUDWindow(QWidget):
         self.saved_height = DEFAULT_HEIGHT
         self.saved_width = DEFAULT_WIDTH
 
-        # Ensure global Antigravity 2.0 rule and node heartbeat are registered
-        install_antigravity_global_rule()
-        update_local_node_heartbeat()
+        paths.ensure_dirs()
+        install_rule()
 
-        # Initialize automatic Git sync daemon (pulls every 3m, commits/pushes 45s after data change)
-        self.git_sync = GitSyncManager(on_status_change=self._on_git_sync_status)
+        self.heartbeat = HeartbeatService()
+        self.heartbeat.start()
+
+        self.git_sync = GitSyncManager(on_status=self._on_git_sync_status)
 
         self._load_settings()
 
@@ -89,18 +94,16 @@ class DesktopHUDWindow(QWidget):
 
         self._position_on_screen()
 
-        # Global VM Poller Timer (ONLY on the main Linux workstation with dockurr/windows VM)
-        if IS_MAIN_LINUX_VM_HOST:
+        if IS_VM_HOST:
             self.vm_timer = QTimer(self)
             self.vm_timer.timeout.connect(self._check_vm_status)
-            self.vm_timer.start(4000)
+            self.vm_timer.start(5000)
             self._check_vm_status()
 
-        # Bidirectional AI-HUD Communication File Watcher
         self._setup_file_watcher()
 
     def _on_git_sync_status(self, success: bool, msg: str):
-        if hasattr(self, 'btn_sync'):
+        if hasattr(self, "btn_sync"):
             self.btn_sync.setText(msg[:16])
             color = "#4ade80" if success else "#f87171"
             if "Sincronizando" in msg:
@@ -124,7 +127,7 @@ class DesktopHUDWindow(QWidget):
             "solid_background": self.is_solid,
             "is_pinned": self.is_pinned,
             "is_collapsed": self.is_collapsed,
-            "active_tab": self.tabs.currentIndex() if hasattr(self, 'tabs') else 0,
+            "active_tab": self.tabs.currentIndex() if hasattr(self, "tabs") else 0,
             "window_width": self.width(),
         }
         if not self.is_collapsed:
@@ -132,80 +135,83 @@ class DesktopHUDWindow(QWidget):
         save_local_ui(cfg)
 
     def _setup_file_watcher(self):
-        os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+        paths.ensure_dirs()
         self.watcher = QFileSystemWatcher(self)
-        for path in [DATA_PATH, EVENTS_FILE]:
+        for path in (paths.DATA_FILE, paths.EVENTS_FILE):
             if not os.path.exists(path):
                 try:
-                    with open(path, "a", encoding="utf-8") as f:
+                    with open(path, "a", encoding="utf-8"):
                         pass
-                except Exception:
+                except OSError:
                     pass
             if os.path.exists(path):
                 self.watcher.addPath(path)
         self.watcher.fileChanged.connect(self._on_watched_file_changed)
 
-    def _on_watched_file_changed(self, path):
-        # Refresh widgets immediately and trigger debounced auto-commit & push to GitHub
+    def _on_watched_file_changed(self, path: str):
         QTimer.singleShot(200, self._refresh_all_tabs)
-        if hasattr(self, 'git_sync'):
+        if hasattr(self, "git_sync"):
             self.git_sync.notify_data_changed()
         if os.path.exists(path) and path not in self.watcher.files():
             self.watcher.addPath(path)
 
     def _refresh_all_tabs(self):
         try:
-            if hasattr(self, 'tab_study'):
+            if hasattr(self, "tab_study"):
                 self.tab_study.refresh_metrics()
-            if hasattr(self, 'tab_writing'):
+            if hasattr(self, "tab_writing"):
                 self.tab_writing.refresh()
-            if hasattr(self, 'tab_dev'):
+            if hasattr(self, "tab_dev"):
                 self.tab_dev.refresh_all()
         except Exception:
             pass
 
     def _update_window_flags(self):
-        # Frameless top-level desktop window that never gets withdrawn
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window
+        if IS_WINDOWS and self.is_pinned:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
 
-    def _apply_x11_layer(self):
-        try:
+    def _apply_window_layer(self):
+        if IS_LINUX and proc.which("wmctrl"):
             win_id = hex(int(self.winId()))
-            # Remove any lingering below atom to prevent GNOME from withdrawing the window
-            subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "remove,below"], capture_output=True)
-            # Skip taskbar and alt-tab pager, stick to all workspaces like a true desktop widget
-            subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "add,skip_taskbar,skip_pager,sticky"], capture_output=True)
+            proc.run(["wmctrl", "-i", "-r", win_id, "-b", "remove,below"], timeout=1.5)
+            proc.run(["wmctrl", "-i", "-r", win_id, "-b", "add,skip_taskbar,skip_pager,sticky"], timeout=1.5)
             if self.is_pinned:
-                subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "add,above"], capture_output=True)
+                proc.run(["wmctrl", "-i", "-r", win_id, "-b", "add,above"], timeout=1.5)
                 self.raise_()
             else:
-                subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "remove,above"], capture_output=True)
+                proc.run(["wmctrl", "-i", "-r", win_id, "-b", "remove,above"], timeout=1.5)
                 self.lower()
-        except Exception:
-            pass
+        elif IS_WINDOWS:
+            try:
+                import ctypes
+                hwnd = int(self.winId())
+                # HWND_TOPMOST = -1, HWND_NOTOPMOST = -2, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE = 0x0013
+                insert_after = -1 if self.is_pinned else -2
+                ctypes.windll.user32.SetWindowPos(hwnd, insert_after, 0, 0, 0, 0, 0x0013)
+                if self.is_pinned:
+                    self.raise_()
+                else:
+                    self.lower()
+            except Exception:
+                pass
 
     def showEvent(self, event):
         super().showEvent(event)
-        QTimer.singleShot(150, self._apply_x11_layer)
+        QTimer.singleShot(150, self._apply_window_layer)
 
     def toggle_pin(self):
         self.is_pinned = not self.is_pinned
-        try:
-            win_id = hex(int(self.winId()))
-            if self.is_pinned:
-                subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "add,above"], capture_output=True)
-                self.raise_()
-                self.btn_pin.setText("📌")
-                self.btn_pin.setToolTip("Fixado no Topo (clique para deixar na Área de Trabalho)")
-                self.btn_pin.setStyleSheet("color: #38bdf8; background-color: rgba(56, 189, 248, 0.2);")
-            else:
-                subprocess.run(["wmctrl", "-i", "-r", win_id, "-b", "remove,above"], capture_output=True)
-                self.lower()
-                self.btn_pin.setText("🖥️")
-                self.btn_pin.setToolTip("Na Área de Trabalho (clique para fixar no topo)")
-                self.btn_pin.setStyleSheet("color: #a855f7; background-color: rgba(168, 85, 247, 0.2);")
-        except Exception:
-            pass
+        self._apply_window_layer()
+        if self.is_pinned:
+            self.btn_pin.setText("📌")
+            self.btn_pin.setToolTip("Fixado no Topo (clique para deixar na Área de Trabalho)")
+            self.btn_pin.setStyleSheet("color: #38bdf8; background-color: rgba(56, 189, 248, 0.2);")
+        else:
+            self.btn_pin.setText("🖥️")
+            self.btn_pin.setToolTip("Na Área de Trabalho (clique para fixar no topo)")
+            self.btn_pin.setStyleSheet("color: #a855f7; background-color: rgba(168, 85, 247, 0.2);")
         self._save_settings()
 
     def toggle_solid(self):
@@ -244,34 +250,32 @@ class DesktopHUDWindow(QWidget):
         self.root_layout.setContentsMargins(8, 6, 8, 6)
         self.root_layout.setSpacing(4)
 
-        # Header bar (Clock, Global VM Badge, Controls)
         h_head = QHBoxLayout()
         h_head.setContentsMargins(2, 0, 2, 0)
         h_head.setSpacing(6)
 
-        # Compact Clock & Date
         self.clock_widget = ClockWidget(self)
         h_head.addWidget(self.clock_widget)
 
-        # Global VM Status Badge (Beside Clock - ONLY visible on main Linux VM Host)
         self.btn_vm_badge = None
-        if IS_MAIN_LINUX_VM_HOST:
+        if IS_VM_HOST:
             self.btn_vm_badge = QPushButton("⚫ Win11")
-            self.btn_vm_badge.setStyleSheet("font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);")
+            self.btn_vm_badge.setStyleSheet(
+                "font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; "
+                "background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);"
+            )
             self.btn_vm_badge.setToolTip("Status da VM Windows (Fusion 360)")
             self.btn_vm_badge.clicked.connect(self._on_vm_badge_clicked)
             h_head.addWidget(self.btn_vm_badge)
 
         h_head.addStretch()
 
-        # Web Dashboard Button
         btn_web = QPushButton("🌐 Web")
         btn_web.setObjectName("btn_icon")
-        btn_web.setToolTip("Abrir Centro de Comando Web 24/7 (localhost:8090)")
+        btn_web.setToolTip(f"Abrir Centro de Comando Web 24/7 (localhost:{WEB_PORT})")
         btn_web.clicked.connect(self._open_web)
         h_head.addWidget(btn_web)
 
-        # Solid vs Glass Toggle
         self.btn_solid = QPushButton("🎨" if not self.is_solid else "⬛")
         self.btn_solid.setObjectName("btn_icon")
         self.btn_solid.setFixedSize(22, 22)
@@ -279,7 +283,6 @@ class DesktopHUDWindow(QWidget):
         self.btn_solid.clicked.connect(self.toggle_solid)
         h_head.addWidget(self.btn_solid)
 
-        # Pin Button
         self.btn_pin = QPushButton("📌" if self.is_pinned else "🖥️")
         self.btn_pin.setObjectName("btn_icon")
         if self.is_pinned:
@@ -290,7 +293,6 @@ class DesktopHUDWindow(QWidget):
         self.btn_pin.clicked.connect(self.toggle_pin)
         h_head.addWidget(self.btn_pin)
 
-        # Collapsible Toggle Button
         self.btn_collapse = QPushButton("▲" if not self.is_collapsed else "▼")
         self.btn_collapse.setObjectName("btn_icon")
         self.btn_collapse.setFixedSize(22, 22)
@@ -298,7 +300,6 @@ class DesktopHUDWindow(QWidget):
         self.btn_collapse.clicked.connect(self.toggle_collapse)
         h_head.addWidget(self.btn_collapse)
 
-        # Minimize to Tray
         self.btn_min = QPushButton("─")
         self.btn_min.setObjectName("btn_icon")
         self.btn_min.setFixedSize(22, 22)
@@ -307,7 +308,6 @@ class DesktopHUDWindow(QWidget):
 
         self.root_layout.addLayout(h_head)
 
-        # Tabs Navigation (Specialized Workspaces: Dev, Eng, Escrita, Estudos)
         self.tabs = QTabWidget(self)
         self.tabs.setDocumentMode(True)
 
@@ -323,13 +323,12 @@ class DesktopHUDWindow(QWidget):
         self.tab_study = StudyWidget(self)
         self.tabs.addTab(self.tab_study, "🎓 Estudos")
 
-        if hasattr(self, 'active_tab'):
+        if hasattr(self, "active_tab"):
             self.tabs.setCurrentIndex(min(self.tabs.count() - 1, max(0, self.active_tab)))
-        self.tabs.currentChanged.connect(lambda idx: self._save_settings())
+        self.tabs.currentChanged.connect(lambda _idx: self._save_settings())
 
         self.root_layout.addWidget(self.tabs, 1)
 
-        # Bottom Bar: Task Manager, ~/develop & QSizeGrip
         self.bottom_bar_widget = QWidget()
         h_bottom = QHBoxLayout(self.bottom_bar_widget)
         h_bottom.setContentsMargins(2, 2, 2, 2)
@@ -361,46 +360,46 @@ class DesktopHUDWindow(QWidget):
         self.root_layout.addWidget(self.bottom_bar_widget)
 
     def _check_vm_status(self):
-        if not IS_MAIN_LINUX_VM_HOST or not hasattr(self, 'btn_vm_badge') or self.btn_vm_badge is None:
+        if not IS_VM_HOST or not self.btn_vm_badge:
             return
-        try:
-            res = subprocess.run(
-                ["docker", "inspect", "-f", "{{.State.Running}}", "windows-fusion360"],
-                capture_output=True, text=True, timeout=1.5
+        res = proc.run(["docker", "inspect", "-f", "{{.State.Running}}", "windows-fusion360"], timeout=1.5)
+        is_running = res.stdout.strip() == "true"
+        if is_running:
+            self.btn_vm_badge.setText("🟢 Win11 (Fusion)")
+            self.btn_vm_badge.setStyleSheet(
+                "font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; "
+                "background-color: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4);"
             )
-            is_running = res.stdout.strip() == "true"
-            if is_running:
-                self.btn_vm_badge.setText("🟢 Win11 (Fusion)")
-                self.btn_vm_badge.setStyleSheet("font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background-color: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4);")
-            else:
-                self.btn_vm_badge.setText("⚫ Win11")
-                self.btn_vm_badge.setStyleSheet("font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);")
-        except Exception:
-            pass
+        else:
+            self.btn_vm_badge.setText("⚫ Win11")
+            self.btn_vm_badge.setStyleSheet(
+                "font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; "
+                "background-color: rgba(35, 40, 52, 0.7); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08);"
+            )
 
     def _on_vm_badge_clicked(self):
-        if not IS_MAIN_LINUX_VM_HOST or not hasattr(self, 'btn_vm_badge') or self.btn_vm_badge is None:
+        if not IS_VM_HOST or not self.btn_vm_badge:
             return
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu { background-color: #1a1e27; border: 1px solid rgba(255, 255, 255, 0.1); color: #f1f5f9; padding: 4px; }
-            QMenu::item { padding: 6px 14px; border-radius: 4px; font-size: 11px; }
-            QMenu::item:selected { background-color: #0284c7; }
-        """)
+        menu.setStyleSheet(
+            "QMenu { background-color: #1a1e27; border: 1px solid rgba(255, 255, 255, 0.1); color: #f1f5f9; padding: 4px; }"
+            "QMenu::item { padding: 6px 14px; border-radius: 4px; font-size: 11px; }"
+            "QMenu::item:selected { background-color: #0284c7; }"
+        )
 
         act_rdp = menu.addAction("🖥️ Conectar Tela RDP (Remmina)")
-        act_rdp.triggered.connect(lambda: subprocess.Popen([VM_SCRIPT, "conectar"]))
+        act_rdp.triggered.connect(lambda: proc.spawn([VM_SCRIPT, "conectar"]))
 
         act_web = menu.addAction("🌐 Abrir no Navegador (Web VNC)")
-        act_web.triggered.connect(lambda: subprocess.Popen([VM_SCRIPT, "web"]))
+        act_web.triggered.connect(lambda: proc.spawn([VM_SCRIPT, "web"]))
 
         menu.addSeparator()
 
         act_start = menu.addAction("⚡ Iniciar VM Windows")
-        act_start.triggered.connect(lambda: subprocess.Popen([VM_SCRIPT, "start"]))
+        act_start.triggered.connect(lambda: proc.spawn([VM_SCRIPT, "start"]))
 
         act_stop = menu.addAction("🛑 Desligar VM (Liberar RAM)")
-        act_stop.triggered.connect(lambda: subprocess.Popen([VM_SCRIPT, "stop"]))
+        act_stop.triggered.connect(lambda: proc.spawn([VM_SCRIPT, "stop"]))
 
         menu.exec(self.btn_vm_badge.mapToGlobal(QPoint(0, self.btn_vm_badge.height())))
 
@@ -415,17 +414,20 @@ class DesktopHUDWindow(QWidget):
         self._save_settings()
 
     def _open_web(self):
-        open_file_or_url("http://localhost:8090")
+        launchers.open_path(f"http://localhost:{WEB_PORT}")
 
     def _launch_taskmgr(self):
+        if IS_WINDOWS:
+            proc.spawn(["taskmgr.exe"])
+            return
         taskmgr_path = "/home/usuario/taskmgr_linux/taskmgr"
         if os.path.exists(taskmgr_path):
-            subprocess.Popen([taskmgr_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            subprocess.Popen(["gnome-system-monitor"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc.spawn([taskmgr_path])
+        elif proc.which("gnome-system-monitor"):
+            proc.spawn(["gnome-system-monitor"])
 
     def _open_develop_folder(self):
-        open_file_or_url(discover_develop_dir())
+        launchers.open_path(discover_develop_dir())
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -451,20 +453,20 @@ class HUDTrayIcon(QSystemTrayIcon):
         self.setToolTip("Dev & Hardware Desktop HUD")
 
         menu = QMenu()
-        menu.setStyleSheet("""
-            QMenu { background-color: #12141a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f1f5f9; padding: 4px; }
-            QMenu::item { padding: 6px 14px; border-radius: 4px; font-size: 11px; }
-            QMenu::item:selected { background-color: #0284c7; }
-        """)
+        menu.setStyleSheet(
+            "QMenu { background-color: #12141a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f1f5f9; padding: 4px; }"
+            "QMenu::item { padding: 6px 14px; border-radius: 4px; font-size: 11px; }"
+            "QMenu::item:selected { background-color: #0284c7; }"
+        )
 
         act_show = menu.addAction("👁️ Mostrar / Ocultar HUD")
         act_show.triggered.connect(self._toggle_hud)
 
-        act_web = menu.addAction("🌐 Abrir Painel Web (localhost:8090)")
-        act_web.triggered.connect(lambda: open_file_or_url("http://localhost:8090"))
+        act_web = menu.addAction(f"🌐 Abrir Painel Web (localhost:{WEB_PORT})")
+        act_web.triggered.connect(lambda: launchers.open_path(f"http://localhost:{WEB_PORT}"))
 
         act_dev = menu.addAction("📂 Abrir Pasta de Projetos")
-        act_dev.triggered.connect(lambda: open_file_or_url(discover_develop_dir()))
+        act_dev.triggered.connect(lambda: launchers.open_path(discover_develop_dir()))
 
         menu.addSeparator()
 
@@ -497,7 +499,7 @@ class HUDTrayIcon(QSystemTrayIcon):
             self.hud_window.show()
             self.hud_window.raise_()
             self.hud_window.activateWindow()
-            QTimer.singleShot(100, self.hud_window._apply_x11_layer)
+            QTimer.singleShot(100, self.hud_window._apply_window_layer)
 
     def _on_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
@@ -505,19 +507,27 @@ class HUDTrayIcon(QSystemTrayIcon):
 
 
 def main():
+    setup_logging("hud")
+
     if "--headless-node" in sys.argv:
-        print("[Vector-HUD] Iniciando modo Headless Node Daemon...")
-        install_antigravity_global_rule()
-        update_local_node_heartbeat()
+        log.info("Iniciando modo Headless Node Daemon...")
+        install_rule()
+        write_local_heartbeat()
         sync_mgr = GitSyncManager()
         import time
+
         try:
             while True:
                 time.sleep(30)
-                update_local_node_heartbeat()
+                write_local_heartbeat()
         except KeyboardInterrupt:
             sync_mgr.stop()
-            print("[Vector-HUD] Headless daemon finalizado.")
+            log.info("Headless daemon finalizado.")
+        sys.exit(0)
+
+    instance_lock = SingleInstance(HUD_LOCK_PORT)
+    if not instance_lock.acquire():
+        log.info("Outra instância do Desktop HUD já está em execução. Encerrando.")
         sys.exit(0)
 
     app = QApplication(sys.argv)
@@ -527,9 +537,11 @@ def main():
     window = DesktopHUDWindow()
     window.show()
 
-    tray = HUDTrayIcon(window, app)
+    _tray = HUDTrayIcon(window, app)
 
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    instance_lock.release()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

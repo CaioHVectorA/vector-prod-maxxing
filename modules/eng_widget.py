@@ -1,24 +1,30 @@
 """
-Engineering & Hardware Tab Widget
+Engineering & Hardware Tab Widget (modules/eng_widget.py)
 Combines:
-- Hardware Detection & Firmware Flasher (9 utilities + Erase + Serial Monitor)
-- Engineering Projects integration with .hud.json (like ~/develop/mp3)
-- Windows VM (Fusion 360) Docker management
+- Hardware Detection & Firmware Flasher
+- Engineering Projects integration with .hud.json
+- Windows VM (Fusion 360) Docker management (apenas no host Linux principal)
 """
 
-import os
 import json
-import subprocess
-from PyQt6.QtWidgets import (
-    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QScrollArea, QWidget, QMessageBox
-)
-from PyQt6.QtCore import QTimer, Qt
+import os
 
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from core import launchers
+from core.osinfo import IS_VM_HOST
+from core.workspace import discover_develop_dir
 from modules.hardware_flasher import HardwareFlasherWidget
 from modules.vm_widget import WindowsVMWidget
-from modules.env_resolver import discover_develop_dir, IS_MAIN_LINUX_VM_HOST, open_in_antigravity
-
-DEVELOP_DIR = discover_develop_dir()
 
 
 class EngHardwareWidget(QFrame):
@@ -30,7 +36,6 @@ class EngHardwareWidget(QFrame):
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
 
-        # Scroll area for eng tab
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("background: transparent; border: none;")
@@ -48,7 +53,10 @@ class EngHardwareWidget(QFrame):
 
         # 2. Engineering Projects (.hud.json)
         self.card_projects = QFrame()
-        self.card_projects.setStyleSheet("background-color: rgba(20, 24, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 6px;")
+        self.card_projects.setStyleSheet(
+            "background-color: rgba(20, 24, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); "
+            "border-radius: 8px; padding: 6px;"
+        )
         p_layout = QVBoxLayout(self.card_projects)
         p_layout.setContentsMargins(6, 6, 6, 6)
         p_layout.setSpacing(4)
@@ -73,7 +81,7 @@ class EngHardwareWidget(QFrame):
         c_layout.addWidget(self.card_projects)
 
         # 3. Windows VM Control (ONLY shown on the main Linux workstation 'policorp')
-        if IS_MAIN_LINUX_VM_HOST:
+        if IS_VM_HOST:
             self.vm_widget = WindowsVMWidget(self)
             c_layout.addWidget(self.vm_widget)
 
@@ -90,13 +98,14 @@ class EngHardwareWidget(QFrame):
                 w.deleteLater()
 
         found = []
-        if os.path.isdir(DEVELOP_DIR):
-            for item in os.listdir(DEVELOP_DIR):
-                p = os.path.join(DEVELOP_DIR, item)
+        dev_dir = discover_develop_dir()
+        if os.path.isdir(dev_dir):
+            for item in sorted(os.listdir(dev_dir)):
+                p = os.path.join(dev_dir, item)
                 hud_file = os.path.join(p, ".hud.json")
                 if os.path.isfile(hud_file):
                     try:
-                        with open(hud_file, "r") as f:
+                        with open(hud_file, "r", encoding="utf-8") as f:
                             cfg = json.load(f)
                             cfg["folder"] = item
                             cfg["path"] = p
@@ -112,7 +121,10 @@ class EngHardwareWidget(QFrame):
 
         for p in found:
             row = QFrame()
-            row.setStyleSheet("background-color: rgba(30, 35, 48, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 4px 6px;")
+            row.setStyleSheet(
+                "background-color: rgba(30, 35, 48, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); "
+                "border-radius: 6px; padding: 4px 6px;"
+            )
             h = QHBoxLayout(row)
             h.setContentsMargins(4, 2, 4, 2)
             h.setSpacing(6)
@@ -131,20 +143,21 @@ class EngHardwareWidget(QFrame):
             v_info.addWidget(lbl_sub)
             h.addLayout(v_info, 1)
 
-            # Flash Action
             if p["folder"] == "mp3":
                 btn_flash = QPushButton("🎵 Flash MP3")
-                btn_flash.setStyleSheet("background-color: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-size: 10px; font-weight: 700; padding: 3px 6px;")
+                btn_flash.setStyleSheet(
+                    "background-color: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); "
+                    "color: #c084fc; font-size: 10px; font-weight: 700; padding: 3px 6px;"
+                )
                 btn_flash.clicked.connect(lambda: self.flasher._start_flash("mp3_bt"))
                 h.addWidget(btn_flash)
 
-            # Open IDE
             btn_ide = QPushButton("⚡ IDE")
-            btn_ide.setStyleSheet("background-color: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.35); color: #38bdf8; font-size: 10px; font-weight: 600; padding: 3px 6px;")
-            btn_ide.clicked.connect(lambda _, path=p["path"]: self._open_ide(path))
+            btn_ide.setStyleSheet(
+                "background-color: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.35); "
+                "color: #38bdf8; font-size: 10px; font-weight: 600; padding: 3px 6px;"
+            )
+            btn_ide.clicked.connect(lambda _, path=p["path"]: launchers.open_in_ide(path))
             h.addWidget(btn_ide)
 
             self.hud_projects_layout.addWidget(row)
-
-    def _open_ide(self, path: str):
-        open_in_antigravity(path)

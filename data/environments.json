@@ -1,0 +1,41 @@
+[
+  {
+    "hostname": "policorp",
+    "display_name": "Policorp (Linux Workstation)",
+    "role": "Workstation Principal (Linux)",
+    "os": "Linux Ubuntu",
+    "platform": "linux",
+    "ip": "192.168.1.10",
+    "develop_dir": "/home/usuario/develop",
+    "remote_control": {
+      "type": "ssh",
+      "target": "usuario@192.168.1.10"
+    }
+  },
+  {
+    "hostname": "windows-workstation",
+    "display_name": "Windows PC (Dev & CAD)",
+    "role": "Ambiente Windows Nativo",
+    "os": "Windows 11 Pro",
+    "platform": "windows",
+    "ip": "192.168.1.20",
+    "develop_dir": "C:\\Users\\usuario\\develop",
+    "remote_control": {
+      "type": "rdp",
+      "target": "192.168.1.20"
+    }
+  },
+  {
+    "hostname": "ai-rig-01",
+    "display_name": "AI Training Rig #1 (Remote)",
+    "role": "Treinamento IA & RL",
+    "os": "Linux / Windows GPU Node",
+    "platform": "linux",
+    "ip": "192.168.1.50",
+    "develop_dir": "~/develop",
+    "remote_control": {
+      "type": "ssh",
+      "target": "usuario@192.168.1.50"
+    }
+  }
+]

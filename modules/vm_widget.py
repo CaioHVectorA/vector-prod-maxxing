@@ -1,15 +1,20 @@
 """
-Windows VM Management & Status Widget
-Integrates with dockurr/windows container via /home/usuario/windows-vm/windows.sh
+Windows VM Management & Status Widget (modules/vm_widget.py)
+Integrates with dockurr/windows container via ``core.osinfo.VM_SCRIPT`` and ``core.proc``.
 """
 
-import subprocess
+from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
-    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
 )
-from PyQt6.QtCore import QTimer, QThread, pyqtSignal, Qt
 
-VM_SCRIPT = "/home/usuario/windows-vm/windows.sh"
+from core import proc
+from core.osinfo import IS_VM_HOST, VM_SCRIPT
 
 
 class VMActionThread(QThread):
@@ -20,14 +25,11 @@ class VMActionThread(QThread):
         self.action = action
 
     def run(self):
-        try:
-            res = subprocess.run([VM_SCRIPT, self.action], capture_output=True, text=True, timeout=90)
-            if res.returncode == 0:
-                self.finished_action.emit(True, f"Ação '{self.action}' executada com sucesso.")
-            else:
-                self.finished_action.emit(False, res.stderr or res.stdout)
-        except Exception as e:
-            self.finished_action.emit(False, str(e))
+        res = proc.run([VM_SCRIPT, self.action], timeout=90.0)
+        if res.ok:
+            self.finished_action.emit(True, f"Ação '{self.action}' executada com sucesso.")
+        else:
+            self.finished_action.emit(False, res.error or res.output or "Falha ao executar comando da VM.")
 
 
 class WindowsVMWidget(QFrame):
@@ -41,7 +43,6 @@ class WindowsVMWidget(QFrame):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(6)
 
-        # Header
         h_head = QHBoxLayout()
         lbl_head = QLabel("🖥️ VM WINDOWS (FUSION 360)")
         lbl_head.setObjectName("sec_title")
@@ -55,9 +56,11 @@ class WindowsVMWidget(QFrame):
         h_head.addWidget(self.btn_refresh)
         layout.addLayout(h_head)
 
-        # Status Display Box
         self.box_status = QFrame()
-        self.box_status.setStyleSheet("background-color: rgba(20, 24, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 6px;")
+        self.box_status.setStyleSheet(
+            "background-color: rgba(20, 24, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); "
+            "border-radius: 8px; padding: 6px;"
+        )
         box_layout = QVBoxLayout(self.box_status)
         box_layout.setContentsMargins(6, 6, 6, 6)
         box_layout.setSpacing(4)
@@ -71,7 +74,6 @@ class WindowsVMWidget(QFrame):
         box_layout.addWidget(self.lbl_vm_details)
         layout.addWidget(self.box_status)
 
-        # Buttons Container
         self.btns_container = QHBoxLayout()
         self.btns_container.setSpacing(6)
         layout.addLayout(self.btns_container)
@@ -80,27 +82,24 @@ class WindowsVMWidget(QFrame):
         self.lbl_op_status.setStyleSheet("font-size: 10px; color: #38bdf8;")
         layout.addWidget(self.lbl_op_status)
 
-        # Polling Timer (every 4 seconds)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.check_vm_status)
-        self.timer.start(4000)
-        self.check_vm_status()
+        if IS_VM_HOST:
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.check_vm_status)
+            self.timer.start(5000)
+            self.check_vm_status()
 
     def check_vm_status(self):
-        try:
-            res = subprocess.run(
-                ["docker", "inspect", "-f", "{{.State.Running}}", "windows-fusion360"],
-                capture_output=True, text=True, timeout=2.0
-            )
-            is_running = res.stdout.strip() == "true"
-            self._update_ui(is_running)
-        except Exception:
+        if not IS_VM_HOST:
+            return
+        res = proc.run(["docker", "inspect", "-f", "{{.State.Running}}", "windows-fusion360"], timeout=2.0)
+        if res.returncode < 0:
             self._update_ui(False, error=True)
+        else:
+            self._update_ui(res.stdout.strip() == "true")
 
     def _update_ui(self, is_running: bool, error: bool = False):
         self.is_running = is_running
 
-        # Clear buttons
         while self.btns_container.count() > 0:
             item = self.btns_container.takeAt(0)
             w = item.widget()
@@ -118,21 +117,27 @@ class WindowsVMWidget(QFrame):
             self.lbl_vm_state.setStyleSheet("font-size: 12px; font-weight: 700; color: #4ade80;")
             self.lbl_vm_details.setText("Windows 11 pronto | Fusion 360 disponível")
 
-            # Button: Conectar Remmina
             btn_connect = QPushButton("🖥️ Conectar (RDP)")
-            btn_connect.setStyleSheet("background-color: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: 600; font-size: 11px; padding: 5px;")
+            btn_connect.setStyleSheet(
+                "background-color: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); "
+                "color: #38bdf8; font-weight: 600; font-size: 11px; padding: 5px;"
+            )
             btn_connect.clicked.connect(lambda: self._run_action("conectar"))
             self.btns_container.addWidget(btn_connect)
 
-            # Button: Web VNC
             btn_web = QPushButton("🌐 Web")
-            btn_web.setStyleSheet("background-color: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); color: #818cf8; font-size: 11px; padding: 5px;")
+            btn_web.setStyleSheet(
+                "background-color: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); "
+                "color: #818cf8; font-size: 11px; padding: 5px;"
+            )
             btn_web.clicked.connect(lambda: self._run_action("web"))
             self.btns_container.addWidget(btn_web)
 
-            # Button: Parar
             btn_stop = QPushButton("🛑 Parar")
-            btn_stop.setStyleSheet("background-color: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); color: #fca5a5; font-size: 11px; padding: 5px;")
+            btn_stop.setStyleSheet(
+                "background-color: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); "
+                "color: #fca5a5; font-size: 11px; padding: 5px;"
+            )
             btn_stop.clicked.connect(lambda: self._run_action("stop"))
             self.btns_container.addWidget(btn_stop)
         else:
@@ -140,9 +145,11 @@ class WindowsVMWidget(QFrame):
             self.lbl_vm_state.setStyleSheet("font-size: 12px; font-weight: 700; color: #94a3b8;")
             self.lbl_vm_details.setText("Ligue quando precisar usar o Fusion 360.")
 
-            # Button: Iniciar
             btn_start = QPushButton("⚡ Iniciar VM Windows")
-            btn_start.setStyleSheet("background-color: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: 700; font-size: 11px; padding: 6px;")
+            btn_start.setStyleSheet(
+                "background-color: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); "
+                "color: #38bdf8; font-weight: 700; font-size: 11px; padding: 6px;"
+            )
             btn_start.clicked.connect(lambda: self._run_action("iniciar"))
             self.btns_container.addWidget(btn_start)
 

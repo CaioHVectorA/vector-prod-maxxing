@@ -1,114 +1,56 @@
 #!/usr/bin/env python3
 """
 HUD CLI Helper (hud_cli.py) for Antigravity 2.0 Chat <-> Desktop HUD Bidirectional Protocol
-Allows the AI agent (or user in terminal) to log study sessions, update exam dates/grades,
-log writing sprints, register AI training jobs on remote/local rigs, and trigger GitHub auto-sync.
+Usa ``core.study``, ``core.nodes``, ``core.storage`` e ``core.git_sync``.
 """
 
+import argparse
 import os
 import sys
-import json
-import argparse
 from datetime import datetime
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 if base_dir not in sys.path:
     sys.path.insert(0, base_dir)
 
-from modules.env_resolver import DATA_PATH, EVENTS_FILE, HOSTNAME, ensure_directories
-from modules.nodes_widget import update_local_node_heartbeat
-from modules.git_sync import run_git_sync_once
-
-
-def append_event(event_type: str, details: dict):
-    ensure_directories()
-    record = {
-        "ts": datetime.now().isoformat(timespec="seconds"),
-        "env": HOSTNAME,
-        "type": event_type,
-        **details
-    }
-    with open(EVENTS_FILE, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+from core import git_sync, nodes, paths, study
+from core.osinfo import HOSTNAME
+from core.storage import append_event
 
 
 def cmd_log_study(args):
-    ensure_directories()
-    if os.path.exists(DATA_PATH):
-        with open(DATA_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    else:
-        data = {"estudos": {"questoes_feitas_hoje": 0, "disciplinas": []}}
-
-    estudos = data.setdefault("estudos", {})
-    estudos["questoes_feitas_hoje"] = int(estudos.get("questoes_feitas_hoje", 0)) + args.questions
-
-    now_iso = datetime.now().isoformat(timespec="seconds")
-    for d in estudos.get("disciplinas", []):
-        if d.get("id") == args.subject or args.subject.lower() in d.get("nome", "").lower():
-            d["ultimo_estudo"] = now_iso
-
-    with open(DATA_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    append_event("study_session", {
-        "subject": args.subject,
-        "questions": args.questions,
-        "topic": args.topic or ""
-    })
+    paths.ensure_dirs()
+    study.record_session(args.subject, questions=args.questions, topic=args.topic or "")
     print(f"[HUD-CLI] Estudo registrado: +{args.questions} questões em '{args.subject}' ({args.topic}).")
 
 
 def cmd_set_exam(args):
-    ensure_directories()
-    if not os.path.exists(DATA_PATH):
-        print("[HUD-CLI] data.json não encontrado.")
-        return
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    updated = False
-    for d in data.get("estudos", {}).get("disciplinas", []):
-        if d.get("id") == args.subject or args.subject.lower() in d.get("nome", "").lower():
-            if args.grade is not None:
-                d[args.exam.lower()] = float(args.grade)
-            if args.date:
-                d[f"data_{args.exam.lower()}"] = args.date
-            updated = True
-
-    if updated:
-        with open(DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        append_event("exam_update", {
-            "subject": args.subject,
-            "exam": args.exam,
-            "grade": args.grade,
-            "date": args.date
-        })
+    paths.ensure_dirs()
+    ok = study.set_exam(args.subject, args.exam, grade=args.grade, date=args.date)
+    if ok:
         print(f"[HUD-CLI] Prova '{args.exam}' de '{args.subject}' atualizada com sucesso.")
     else:
         print(f"[HUD-CLI] Disciplina '{args.subject}' não encontrada.")
 
 
 def cmd_log_writing(args):
-    append_event("writing_sprint", {
-        "words": args.words,
-        "chapter": args.chapter or "UVC"
-    })
+    paths.ensure_dirs()
+    append_event("writing_sprint", words=args.words, chapter=args.chapter or "UVC")
     print(f"[HUD-CLI] Sessão de escrita registrada: {args.words} palavras em '{args.chapter}'.")
 
 
 def cmd_ai_train(args):
+    paths.ensure_dirs()
     if args.stop:
         ai_state = {
             "active": False,
             "manual_override": False,
             "project": args.project or "",
             "command": "",
-            "progress_hint": args.info or "Concluído"
+            "progress_hint": args.info or "Concluído",
         }
-        update_local_node_heartbeat(custom_ai_training=ai_state)
-        append_event("ai_train_stop", {"project": args.project, "info": args.info})
+        nodes.write_local_heartbeat(ai_override=ai_state)
+        append_event("ai_train_stop", project=args.project, info=args.info)
         print(f"[HUD-CLI] Treino de IA finalizado em {HOSTNAME}: {args.info}")
     else:
         ai_state = {
@@ -117,16 +59,17 @@ def cmd_ai_train(args):
             "project": args.project or "Modelo IA",
             "command": args.cmd or "",
             "progress_hint": args.info or "Em andamento...",
-            "started_at": datetime.now().isoformat(timespec="seconds")
+            "started_at": datetime.now().isoformat(timespec="seconds"),
         }
-        update_local_node_heartbeat(custom_ai_training=ai_state)
-        append_event("ai_train_start", {"project": args.project, "info": args.info})
+        nodes.write_local_heartbeat(ai_override=ai_state)
+        append_event("ai_train_start", project=args.project, info=args.info)
         print(f"[HUD-CLI] Treino de IA iniciado em {HOSTNAME}: {args.project} ({args.info})")
 
 
 def cmd_sync(_args):
-    update_local_node_heartbeat()
-    ok, msg = run_git_sync_once(commit_prefix="chore(hud-cli): sync ecosystem data")
+    paths.ensure_dirs()
+    nodes.write_local_heartbeat()
+    ok, msg = git_sync.sync_once(commit_prefix="chore(hud-cli): sync ecosystem data")
     print(f"[HUD-CLI] {msg} (success={ok})")
 
 

@@ -3,7 +3,7 @@ title Vector-Prod-Maxxing (Desktop HUD)
 cd /d "%~dp0"
 
 echo ========================================================
-echo   Vector-Prod-Maxxing - Desktop HUD & Antigravity 2.0
+echo   Vector-Prod-Maxxing - Desktop HUD ^& Antigravity 2.0
 echo ========================================================
 echo.
 
@@ -16,22 +16,23 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: 2. Instalar dependencias necessarias (apenas PyQt6)
-echo [1/3] Verificando dependencias (PyQt6)...
-python -m pip install -q -r requirements.txt
+:: 2. Instalar dependencias necessarias (PyQt6, pyserial, psutil)
+echo [1/3] Verificando dependencias (PyQt6, pyserial, psutil)...
+python -m pip install -q --disable-pip-version-check -r requirements.txt
 
-:: 3. Iniciar Servidor Web em background
+:: 3. Iniciar Servidor Web em background (sem janela de console)
 echo [2/3] Iniciando Servidor Web Local (http://localhost:8090)...
-start /b pythonw web\server.py
+start "" pythonw web\server.py
 
-:: 4. Iniciar Desktop HUD Flutuante
+:: 4. Iniciar Desktop HUD Flutuante (SingleInstance evita duplicatas)
 echo [3/3] Iniciando Desktop HUD...
-start pythonw main.py
+start "" pythonw main.py
 
 echo.
-echo [OK] Tudo pronto!
+echo [OK] Tudo pronto! Nenhum terminal ficara piscando em background.
 echo - HUD rodando na tela e na bandeja do sistema (proximo ao relogio).
 echo - Dashboard Web acessivel em: http://localhost:8090
-echo - Dados sincronizados automaticamente com o GitHub.
+echo - Logs salvos em: %%APPDATA%%\desktop-hud\logs
 echo.
-timeout /t 3 >nul
+timeout /t 2 >nul
+exit /b 0

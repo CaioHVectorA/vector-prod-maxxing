@@ -1,61 +1,46 @@
 #!/usr/bin/env python3
 """
-24/7 Localhost Web Dashboard Server for Desktop HUD
-Runs on port 8090, serving config, study planner, engineering projects, Antigravity workspaces,
-Cálculo III contents, Bluetooth device scanner/connection panel, writing, and focus controls.
+24/7 Localhost Web Dashboard Server for Desktop HUD (web/server.py)
+Delega toda lógica de negócios para ``core.*`` (zero chamadas diretas a subprocess).
 """
 
-import os
 import json
-import sqlite3
-import subprocess
-import re
-import glob
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from socketserver import ThreadingMixIn
-from datetime import datetime, timedelta
-
+import os
 import sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from modules.env_resolver import (
-    DATA_PATH, PINNED_FILE, EVENTS_FILE, LOCAL_CONFIG_DIR as CONFIG_DIR,
-    discover_develop_dir, find_project_subdir, get_antigravity_ide_bin,
-    get_antigravity_db_path, get_antigravity_storage_path,
-    open_file_or_url, open_terminal_at, open_in_antigravity
+from core import (
+    bluetooth,
+    focus,
+    git_sync,
+    gitutil,
+    launchers,
+    nodes,
+    paths,
+    projects,
+    study,
+    writing,
 )
-from modules.nodes_widget import load_all_nodes, trigger_remote_control, update_local_node_heartbeat
-from modules.git_sync import run_git_sync_once
-from modules.focus_manager import activate_focus_mode, deactivate_focus_mode, generate_pac_file
+from core.logs import get_logger, setup_logging
+from core.settings import WEB_HOST, WEB_PORT
+from core.storage import write_json
+from core.workspace import discover_develop_dir
 
-PORT = 8090
-PAC_FILE = os.path.join(CONFIG_DIR, "focus.pac")
-DEVELOP_DIR = discover_develop_dir()
-UVC_DIR = find_project_subdir("UVC")
-CALC_DIR = os.path.expanduser("~/Downloads/calc")
-ANTIGRAVITY_DB = get_antigravity_db_path()
-STORAGE_JSON = get_antigravity_storage_path()
-IDE_BIN = get_antigravity_ide_bin() or "/home/usuario/.local/bin/antigravity-ide"
-WEB_DIR = os.path.dirname(os.path.realpath(__file__))
-
-
-def get_daily_cutoff_iso() -> str:
-    now = datetime.now()
-    if now.hour >= 6:
-        cutoff = now.replace(hour=6, minute=0, second=0, microsecond=0)
-    else:
-        cutoff = (now - timedelta(days=1)).replace(hour=6, minute=0, second=0, microsecond=0)
-    return cutoff.strftime("%Y-%m-%d %H:%M:%S")
+log = get_logger("hud.web")
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
 
 
 class HUDRequestHandler(BaseHTTPRequestHandler):
-    def _set_headers(self, status=200, content_type="application/json"):
+    def _set_headers(self, status: int = 200, content_type: str = "application/json"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -63,34 +48,38 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+    def _send_json(self, payload, status: int = 200):
+        self._set_headers(status, "application/json; charset=utf-8")
+        self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+
     def do_OPTIONS(self):
         self._set_headers(200)
 
     def do_GET(self):
-        if self.path == "/" or self.path == "/index.html":
-            self._serve_file(os.path.join(WEB_DIR, "index.html"), "text/html; charset=utf-8")
+        if self.path in ("/", "/index.html"):
+            self._serve_file(os.path.join(paths.WEB_DIR, "index.html"), "text/html; charset=utf-8")
         elif self.path == "/focus.pac":
-            if not os.path.exists(PAC_FILE):
-                generate_pac_file()
-            self._serve_file(PAC_FILE, "application/x-ns-proxy-autoconfig")
+            if not os.path.exists(paths.PAC_FILE):
+                focus.generate_pac_file()
+            self._serve_file(paths.PAC_FILE, "application/x-ns-proxy-autoconfig")
         elif self.path == "/api/data":
-            self._serve_data()
+            self._send_json(study.ensure_current_day())
         elif self.path == "/api/repos":
-            self._serve_repos()
+            self._send_json(projects.scan_repos())
         elif self.path == "/api/antigravity/projects":
-            self._serve_antigravity_projects()
+            self._send_json(projects.scan_projects().get("projects", []))
         elif self.path == "/api/projects/pinned":
-            self._serve_pinned_projects()
+            self._send_json(projects.load_pinned())
         elif self.path == "/api/writing":
-            self._serve_writing()
+            self._send_json(writing.scan_writing())
         elif self.path == "/api/bluetooth/status":
-            self._serve_bluetooth_status()
+            self._send_json(bluetooth.status())
         elif self.path == "/api/bluetooth/devices":
-            self._serve_bluetooth_devices()
+            self._send_json(bluetooth.devices())
         elif self.path == "/api/calc/files":
             self._serve_calc_files()
         elif self.path == "/api/nodes":
-            self._serve_nodes()
+            self._send_json({"status": "ok", "nodes": nodes.load_environments()})
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"Not Found")
@@ -104,42 +93,57 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
             payload = {}
 
         if self.path == "/api/data":
-            self._save_data(payload)
+            write_json(paths.DATA_FILE, payload)
+            self._send_json({"status": "ok"})
         elif self.path == "/api/projects/pinned":
-            self._save_pinned_projects(payload)
+            items = payload.get("projects", [])
+            projects.save_pinned(items)
+            self._send_json({"status": "ok", "count": len(items)})
         elif self.path == "/api/focus/start":
-            self._handle_focus(True)
+            focus.activate()
+            self._send_json({"status": "ok", "focus": True})
         elif self.path == "/api/focus/stop":
-            self._handle_focus(False)
+            focus.deactivate()
+            self._send_json({"status": "ok", "focus": False})
         elif self.path == "/api/git/push":
             self._handle_push(payload)
         elif self.path == "/api/git/sync":
-            self._handle_sync()
-        elif self.path == "/api/open-ide" or self.path == "/api/antigravity/open":
-            self._handle_open_ide(payload)
+            nodes.write_local_heartbeat()
+            ok, msg = git_sync.sync_once()
+            self._send_json({"status": "ok" if ok else "error", "message": msg})
+        elif self.path in ("/api/open-ide", "/api/antigravity/open"):
+            path = payload.get("path", "")
+            if path and os.path.exists(path):
+                launchers.open_in_ide(path)
+            self._send_json({"status": "ok"})
         elif self.path == "/api/antigravity/terminal":
-            self._handle_open_terminal(payload)
+            path = payload.get("path", "")
+            if path and os.path.exists(path):
+                launchers.open_terminal(path)
+            self._send_json({"status": "ok"})
         elif self.path == "/api/nodes/remote":
-            self._handle_node_remote(payload)
+            ok = nodes.trigger_remote_control(payload)
+            self._send_json({"status": "ok" if ok else "error"})
         elif self.path == "/api/writing/chapter":
             self._handle_create_chapter(payload)
         elif self.path == "/api/bluetooth/power":
-            self._handle_bluetooth_power(payload)
+            ok, msg = bluetooth.set_power(bool(payload.get("power", True)))
+            self._send_json({"status": "ok" if ok else "error", "message": msg})
         elif self.path == "/api/bluetooth/scan":
-            self._handle_bluetooth_scan()
+            self._send_json(bluetooth.scan(seconds=5))
         elif self.path == "/api/bluetooth/connect":
-            self._handle_bluetooth_connect(payload)
+            self._handle_bt_action(payload, bluetooth.connect)
         elif self.path == "/api/bluetooth/disconnect":
-            self._handle_bluetooth_disconnect(payload)
+            self._handle_bt_action(payload, bluetooth.disconnect)
         elif self.path == "/api/bluetooth/pair":
-            self._handle_bluetooth_pair(payload)
+            self._handle_bt_action(payload, bluetooth.pair)
         elif self.path == "/api/calc/open":
             self._handle_calc_open(payload)
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"Not Found")
 
-    def _serve_file(self, filepath, content_type):
+    def _serve_file(self, filepath: str, content_type: str):
         if os.path.exists(filepath):
             with open(filepath, "rb") as f:
                 content = f.read()
@@ -149,538 +153,80 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(404, "text/plain")
             self.wfile.write(b"File not found")
 
-    def _serve_data(self):
-        if os.path.exists(DATA_PATH):
-            with open(DATA_PATH, "r", encoding="utf-8") as f:
-                content = f.read()
-            self._set_headers(200, "application/json")
-            self.wfile.write(content.encode("utf-8"))
-        else:
-            self._set_headers(200, "application/json")
-            self.wfile.write(b"{}")
-
-    def _save_data(self, data):
-        os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
-        with open(DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-
-    def _serve_pinned_projects(self):
-        pinned = []
-        if os.path.exists(PINNED_FILE):
-            try:
-                with open(PINNED_FILE, "r", encoding="utf-8") as f:
-                    pinned = json.load(f)
-            except Exception:
-                pinned = []
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(pinned).encode("utf-8"))
-
-    def _save_pinned_projects(self, payload):
-        projects = payload.get("projects", [])
-        os.makedirs(CONFIG_DIR, exist_ok=True)
-        try:
-            with open(PINNED_FILE, "w", encoding="utf-8") as f:
-                json.dump(projects, f, indent=2)
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok", "count": len(projects)}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _serve_antigravity_projects(self):
-        projects = {}
-        # 1. Inspect conversation_summaries.db
-        if os.path.exists(ANTIGRAVITY_DB):
-            try:
-                conn = sqlite3.connect(ANTIGRAVITY_DB)
-                c = conn.cursor()
-                c.execute("""
-                    SELECT workspace_uris, project_id, title, last_modified_time, step_count
-                    FROM conversation_summaries 
-                    ORDER BY last_modified_time DESC
-                """)
-                for uris_raw, pid, title, last_mod, steps in c.fetchall():
-                    try:
-                        uris = json.loads(uris_raw) if uris_raw else []
-                    except Exception:
-                        uris = [uris_raw] if uris_raw else []
-                    for uri in uris:
-                        if uri.startswith("file://"):
-                            path = uri.replace("file://", "")
-                            if os.path.exists(path) and path != "/home/usuario":
-                                name = os.path.basename(path)
-                                if name not in projects:
-                                    projects[name] = {
-                                        "name": name,
-                                        "path": path,
-                                        "last_activity": last_mod,
-                                        "last_title": title,
-                                        "convo_count": 1,
-                                        "total_steps": steps
-                                    }
-                                else:
-                                    projects[name]["convo_count"] += 1
-                                    projects[name]["total_steps"] += steps
-                conn.close()
-            except Exception:
-                pass
-
-        # 2. Inspect storage.json
-        if os.path.exists(STORAGE_JSON):
-            try:
-                with open(STORAGE_JSON, "r", encoding="utf-8") as f:
-                    sdata = json.load(f)
-                    for w in sdata.get("profileAssociations", {}).get("workspaces", {}):
-                        if w.startswith("file://"):
-                            path = w.replace("file://", "")
-                            if os.path.exists(path) and path != "/home/usuario":
-                                name = os.path.basename(path)
-                                if name not in projects:
-                                    projects[name] = {
-                                        "name": name,
-                                        "path": path,
-                                        "last_activity": "",
-                                        "last_title": "",
-                                        "convo_count": 0,
-                                        "total_steps": 0
-                                    }
-            except Exception:
-                pass
-
-        # 3. Add ~/develop repos
-        if os.path.isdir(DEVELOP_DIR):
-            for item in sorted(os.listdir(DEVELOP_DIR)):
-                p = os.path.join(DEVELOP_DIR, item)
-                if os.path.isdir(os.path.join(p, ".git")):
-                    if item not in projects:
-                        projects[item] = {
-                            "name": item,
-                            "path": p,
-                            "last_activity": "",
-                            "last_title": "",
-                            "convo_count": 0,
-                            "total_steps": 0
-                        }
-
-        # Git info
-        for name, p in projects.items():
-            path = p["path"]
-            git_dir = os.path.join(path, ".git")
-            if os.path.isdir(git_dir):
-                p["is_git"] = True
-                try:
-                    b_res = subprocess.run(["git", "-C", path, "branch", "--show-current"], capture_output=True, text=True, timeout=0.6)
-                    p["branch"] = b_res.stdout.strip() or "main"
-                    s_res = subprocess.run(["git", "-C", path, "status", "--porcelain"], capture_output=True, text=True, timeout=0.6)
-                    p["dirty"] = len(s_res.stdout.strip().splitlines()) if s_res.stdout.strip() else 0
-                except Exception:
-                    p["branch"] = "main"
-                    p["dirty"] = 0
-            else:
-                p["is_git"] = False
-                p["branch"] = ""
-                p["dirty"] = 0
-
-        res_list = sorted(projects.values(), key=lambda x: (x.get("convo_count", 0), x.get("last_activity", "")), reverse=True)
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(res_list).encode("utf-8"))
-
-    def _serve_writing(self):
-        cutoff_iso = get_daily_cutoff_iso()
-        words_today = 0
-        changed_files_today = set()
-
-        if os.path.exists(UVC_DIR):
-            try:
-                res_log = subprocess.run(
-                    ["git", "-C", UVC_DIR, "log", f"--since={cutoff_iso}", "--name-only", "--format="],
-                    capture_output=True, text=True, timeout=1.2
-                )
-                if res_log.returncode == 0 and res_log.stdout.strip():
-                    for line in res_log.stdout.strip().splitlines():
-                        if line.strip():
-                            changed_files_today.add(os.path.basename(line.strip()))
-                    res_diff = subprocess.run(
-                        ["git", "-C", UVC_DIR, "log", f"--since={cutoff_iso}", "-p", "--", "books/red-right-hand/"],
-                        capture_output=True, text=True, timeout=1.2
-                    )
-                    for line in res_diff.stdout.splitlines():
-                        if line.startswith("+") and not line.startswith("+++"):
-                            words_today += len(line[1:].split())
-            except Exception:
-                pass
-
-            try:
-                res_diff = subprocess.run(
-                    ["git", "-C", UVC_DIR, "diff", "HEAD", "--", "books/red-right-hand/"],
-                    capture_output=True, text=True, timeout=1.2
-                )
-                if res_diff.returncode == 0 and res_diff.stdout.strip():
-                    for line in res_diff.stdout.splitlines():
-                        if line.startswith("+") and not line.startswith("+++"):
-                            words_today += len(line[1:].split())
-                    res_names = subprocess.run(
-                        ["git", "-C", UVC_DIR, "diff", "--name-only", "HEAD", "--", "books/red-right-hand/"],
-                        capture_output=True, text=True, timeout=1.2
-                    )
-                    for line in res_names.stdout.splitlines():
-                        if line.strip():
-                            changed_files_today.add(os.path.basename(line.strip()))
-            except Exception:
-                pass
-
-        cap_dir = os.path.join(UVC_DIR, "books", "red-right-hand", "capitulos")
-        chapters = []
-        total_words = 0
-        if os.path.exists(cap_dir):
-            for f in sorted(glob.glob(os.path.join(cap_dir, "*.md"))):
-                fname = os.path.basename(f)
-                try:
-                    with open(f, "r", encoding="utf-8") as fp:
-                        content = fp.read()
-                        words = len(content.split())
-                        total_words += words
-                        chapters.append({
-                            "filename": fname,
-                            "path": f,
-                            "words": words,
-                            "is_today": (fname in changed_files_today),
-                            "mtime": os.path.getmtime(f)
-                        })
-                except Exception:
-                    pass
-
-        out = {
-            "book": "Red Right Hand",
-            "total_words": total_words,
-            "words_today": words_today,
-            "chapters": chapters,
-            "uvc_exists": os.path.exists(UVC_DIR)
-        }
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(out).encode("utf-8"))
-
-    def _handle_create_chapter(self, payload):
-        title = payload.get("title", "").strip()
+    def _handle_create_chapter(self, payload: dict):
+        title = str(payload.get("title", "")).strip()
         if not title:
-            self._set_headers(400, "application/json")
-            self.wfile.write(json.dumps({"error": "Title required"}).encode("utf-8"))
+            self._send_json({"error": "Title required"}, status=400)
             return
+        filepath = writing.create_chapter(title)
+        self._send_json({"status": "ok", "filename": os.path.basename(filepath), "path": filepath})
 
-        cap_dir = os.path.join(UVC_DIR, "books", "red-right-hand", "capitulos")
-        os.makedirs(cap_dir, exist_ok=True)
-        files = glob.glob(os.path.join(cap_dir, "*.md"))
-        next_num = len(files)
-        slug = title.lower().replace(" ", "-").replace("ç", "c").replace("ã", "a").replace("é", "e")
-        filename = f"{next_num:02d}-{slug}.md"
-        filepath = os.path.join(cap_dir, filename)
-
-        if not os.path.exists(filepath):
-            template = f"""# Capítulo {next_num:02d} — {title}
-
-*Universo UVC — Red Right Hand*
-Data: {datetime.now().strftime('%d/%m/%Y')}
-
----
-
-[Inicie a cena aqui...]
-"""
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(template)
-
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps({"status": "ok", "filename": filename, "path": filepath}).encode("utf-8"))
-
-    def _serve_repos(self):
-        repos = []
-        if os.path.isdir(DEVELOP_DIR):
-            for item in sorted(os.listdir(DEVELOP_DIR)):
-                p = os.path.join(DEVELOP_DIR, item)
-                if os.path.isdir(os.path.join(p, ".git")):
-                    hud_file = os.path.join(p, ".hud.json")
-                    has_hud = os.path.exists(hud_file)
-
-                    res_stat = subprocess.run(
-                        ["git", "-C", p, "status", "--porcelain"],
-                        capture_output=True, text=True, timeout=0.8
-                    )
-                    uncommitted = len(res_stat.stdout.strip().splitlines()) if res_stat.stdout.strip() else 0
-
-                    diff_lines = None
-                    res_diff = subprocess.run(
-                        ["git", "-C", p, "diff", "--shortstat"],
-                        capture_output=True, text=True, timeout=0.8
-                    )
-                    if res_diff.returncode == 0 and res_diff.stdout.strip():
-                        adds = sum(int(x) for x in re.findall(r"(\d+) insertion", res_diff.stdout))
-                        dels = sum(int(x) for x in re.findall(r"(\d+) deletion", res_diff.stdout))
-                        diff_lines = {"add": adds, "del": dels}
-
-                    repos.append({
-                        "name": item,
-                        "path": p,
-                        "has_hud": has_hud,
-                        "uncommitted": uncommitted,
-                        "diff_lines": diff_lines
-                    })
-
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(repos).encode("utf-8"))
-
-    # Bluetooth Endpoints
-    def _serve_bluetooth_status(self):
-        try:
-            res = subprocess.run(["bluetoothctl", "show"], capture_output=True, text=True, timeout=2.0)
-            powered = "Powered: yes" in res.stdout
-            name = "policorp"
-            for line in res.stdout.splitlines():
-                if line.strip().startswith("Name:"):
-                    name = line.strip().split("Name:", 1)[1].strip()
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"powered": powered, "name": name}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e), "powered": False}).encode("utf-8"))
-
-    def _serve_bluetooth_devices(self):
-        devices = []
-        try:
-            res = subprocess.run(["bluetoothctl", "devices"], capture_output=True, text=True, timeout=3.0)
-            for line in res.stdout.strip().splitlines():
-                parts = line.strip().split(None, 2)
-                if len(parts) >= 3 and parts[0] == "Device":
-                    mac = parts[1]
-                    name = parts[2]
-                    info_res = subprocess.run(["bluetoothctl", "info", mac], capture_output=True, text=True, timeout=2.0)
-                    info_txt = info_res.stdout
-
-                    connected = "Connected: yes" in info_txt
-                    paired = "Paired: yes" in info_txt
-
-                    icon = "generic"
-                    name_low = name.lower()
-                    if "audio" in info_txt.lower() or "headset" in info_txt.lower() or "tws" in name_low or "bt510" in name_low or "m10" in name_low:
-                        icon = "audio"
-                    elif "mouse" in name_low:
-                        icon = "mouse"
-                    elif "controller" in name_low:
-                        icon = "controller"
-
-                    rssi = None
-                    m_rssi = re.search(r"RSSI:\s*(-?\d+)", info_txt)
-                    if m_rssi:
-                        rssi = int(m_rssi.group(1))
-
-                    devices.append({
-                        "mac": mac,
-                        "name": name,
-                        "connected": connected,
-                        "paired": paired,
-                        "icon": icon,
-                        "rssi": rssi
-                    })
-        except Exception:
-            pass
-
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(devices).encode("utf-8"))
-
-    def _handle_bluetooth_power(self, payload):
-        turn_on = payload.get("power", True)
-        cmd = "on" if turn_on else "off"
-        try:
-            if turn_on:
-                subprocess.run(["/usr/sbin/rfkill", "unblock", "bluetooth"], capture_output=True)
-            res = subprocess.run(["bluetoothctl", "power", cmd], capture_output=True, text=True, timeout=3.0)
-            success = "succeeded" in res.stdout.lower() or res.returncode == 0
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok" if success else "error", "message": res.stdout}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_bluetooth_scan(self):
-        try:
-            subprocess.run(["/usr/sbin/rfkill", "unblock", "bluetooth"], capture_output=True)
-            subprocess.run(["bluetoothctl", "power", "on"], capture_output=True)
-            # Run 5 second scan
-            subprocess.run(["bluetoothctl", "--timeout", "5", "scan", "on"], capture_output=True, timeout=7.0)
-            self._serve_bluetooth_devices()
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_bluetooth_connect(self, payload):
-        mac = payload.get("mac")
-        if not mac:
-            self._set_headers(400, "application/json")
-            self.wfile.write(json.dumps({"error": "MAC address required"}).encode("utf-8"))
+    def _handle_bt_action(self, payload: dict, fn):
+        mac = str(payload.get("mac", "")).strip()
+        if not bluetooth.is_valid_mac(mac):
+            self._send_json({"error": "MAC address inválido"}, status=400)
             return
+        ok, msg = fn(mac)
+        self._send_json({"status": "ok" if ok else "error", "message": msg})
 
-        try:
-            res = subprocess.run(["bluetoothctl", "connect", mac], capture_output=True, text=True, timeout=9.0)
-            msg = res.stdout or res.stderr
-            success = "Connection successful" in msg
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({
-                "status": "ok" if success else "error",
-                "message": "Conectado com sucesso!" if success else f"Falha ao conectar: {msg.strip()}"
-            }).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_bluetooth_disconnect(self, payload):
-        mac = payload.get("mac")
-        if not mac:
-            self._set_headers(400, "application/json")
-            self.wfile.write(json.dumps({"error": "MAC address required"}).encode("utf-8"))
-            return
-
-        try:
-            res = subprocess.run(["bluetoothctl", "disconnect", mac], capture_output=True, text=True, timeout=5.0)
-            msg = res.stdout or res.stderr
-            success = "Successful disconnected" in msg or "disconnection successful" in msg.lower() or res.returncode == 0
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({
-                "status": "ok" if success else "error",
-                "message": "Desconectado!" if success else msg
-            }).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_bluetooth_pair(self, payload):
-        mac = payload.get("mac")
-        if not mac:
-            self._set_headers(400, "application/json")
-            self.wfile.write(json.dumps({"error": "MAC address required"}).encode("utf-8"))
-            return
-
-        try:
-            res = subprocess.run(["bluetoothctl", "pair", mac], capture_output=True, text=True, timeout=8.0)
-            msg = res.stdout or res.stderr
-            success = "Pairing successful" in msg or res.returncode == 0
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({
-                "status": "ok" if success else "error",
-                "message": "Pareado com sucesso!" if success else msg
-            }).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    # Cálculo III Files
     def _serve_calc_files(self):
         files_data = []
-        if os.path.exists(CALC_DIR):
-            for root, dirs, files in os.walk(CALC_DIR):
-                rel = os.path.relpath(root, CALC_DIR)
+        if os.path.exists(paths.CALC_DIR):
+            for root, _dirs, files in os.walk(paths.CALC_DIR):
+                rel = os.path.relpath(root, paths.CALC_DIR)
                 for f in sorted(files):
                     fp = os.path.join(root, f)
-                    files_data.append({
-                        "name": f,
-                        "category": rel if rel != "." else "Geral",
-                        "path": fp,
-                        "size_kb": round(os.path.getsize(fp) / 1024, 1),
-                        "is_pdf": f.endswith(".pdf")
-                    })
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps(files_data).encode("utf-8"))
+                    try:
+                        size_kb = round(os.path.getsize(fp) / 1024, 1)
+                    except OSError:
+                        size_kb = 0.0
+                    files_data.append(
+                        {
+                            "name": f,
+                            "category": rel if rel != "." else "Geral",
+                            "path": fp,
+                            "size_kb": size_kb,
+                            "is_pdf": f.endswith(".pdf"),
+                        }
+                    )
+        self._send_json(files_data)
 
-    def _handle_calc_open(self, payload):
-        path = payload.get("path")
+    def _handle_calc_open(self, payload: dict):
+        path = payload.get("path", "")
         if path and os.path.exists(path):
-            subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok", "opened": path}).encode("utf-8"))
+            launchers.open_path(path)
+            self._send_json({"status": "ok", "opened": path})
         else:
-            self._set_headers(404, "application/json")
-            self.wfile.write(json.dumps({"error": "File not found"}).encode("utf-8"))
+            self._send_json({"error": "File not found"}, status=404)
 
-    def _handle_focus(self, enable: bool):
-        try:
-            if enable:
-                activate_focus_mode()
-            else:
-                deactivate_focus_mode()
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok", "focus": enable}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_push(self, payload):
-        repo_name = payload.get("repo")
+    def _handle_push(self, payload: dict):
+        repo_name = payload.get("repo", "")
         if not repo_name:
-            self._set_headers(400, "application/json")
-            self.wfile.write(json.dumps({"error": "repo missing"}).encode("utf-8"))
+            self._send_json({"error": "repo missing"}, status=400)
             return
-
-        repo_path = os.path.join(DEVELOP_DIR, repo_name)
-        try:
-            res = subprocess.run(
-                ["git", "-C", repo_path, "push", "origin", "main"],
-                capture_output=True, text=True, timeout=20.0
-            )
-            msg = res.stdout if res.returncode == 0 else (res.stderr or res.stdout)
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok" if res.returncode == 0 else "error", "message": msg}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_open_ide(self, payload):
-        path = payload.get("path")
-        if path and os.path.exists(path):
-            open_in_antigravity(path)
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-
-    def _handle_open_terminal(self, payload):
-        path = payload.get("path")
-        if path and os.path.exists(path):
-            open_terminal_at(path)
-        self._set_headers(200, "application/json")
-        self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-
-    def _serve_nodes(self):
-        try:
-            nodes = load_all_nodes()
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok", "nodes": nodes}, ensure_ascii=False).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_node_remote(self, payload):
-        try:
-            trigger_remote_control(payload)
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-
-    def _handle_sync(self):
-        try:
-            update_local_node_heartbeat()
-            ok, msg = run_git_sync_once()
-            self._set_headers(200, "application/json")
-            self.wfile.write(json.dumps({"status": "ok" if ok else "error", "message": msg}).encode("utf-8"))
-        except Exception as e:
-            self._set_headers(500, "application/json")
-            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+        repo_path = os.path.join(discover_develop_dir(), repo_name)
+        branch = gitutil.current_branch(repo_path) or "main"
+        res = gitutil.git(repo_path, "push", "origin", branch, timeout=25.0)
+        self._send_json(
+            {
+                "status": "ok" if res.ok else "error",
+                "message": res.stdout if res.ok else (res.error or res.output),
+            }
+        )
 
     def log_message(self, format, *args):
         pass
 
 
 def run_server():
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), HUDRequestHandler)
-    print(f"⚡ Desktop HUD Web Server 24/7 rodando em http://localhost:{PORT}")
+    setup_logging("web")
+    paths.ensure_dirs()
+    try:
+        server = ThreadingHTTPServer((WEB_HOST, WEB_PORT), HUDRequestHandler)
+    except OSError as exc:
+        log.info("Servidor Web na porta %s já está em execução (%s).", WEB_PORT, exc)
+        return
+    log.info("Desktop HUD Web Server 24/7 rodando em http://localhost:%s", WEB_PORT)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
