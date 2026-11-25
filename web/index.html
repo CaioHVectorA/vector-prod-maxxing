@@ -132,7 +132,7 @@
           <h3 class="text-sm font-bold text-slate-200">📐 Regras de Avaliação UFF</h3>
           <p class="text-xs text-slate-400 mt-1 leading-relaxed">
             • <b>Cálculo III:</b> Ponderada Peso 2 (P1) e Peso 3 (P2) &nbsp;\( MS = \frac{2P_1 + 3P_2}{5} \ge 6.0 \)<br>
-            • <b>Física II:</b> Média de 3 provas (P1, P2, P3) + testes regulares (<a href="http://localhost:8080" target="_blank" class="text-amber-400 underline">Pfisicas ↗</a>)<br>
+            • <b>Física II:</b> Média de 3 provas (P1, P2, P3) + testes regulares (<a href="/simulador-fisica/" target="_blank" class="text-amber-400 underline">Simulador P3 ↗</a>)<br>
             • <b>Aprovação Direta:</b> Média \( \ge 6.0 \) | VS se entre 4.0 e 5.9
           </p>
         </div>
@@ -154,13 +154,87 @@
         </div>
       </div>
 
+      <!-- FÍSICA II — PROVAS P3 & SIMULADOR -->
+      <div class="bg-hud-card rounded-xl border border-amber-500/30 p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>⚡ Provas P3 &amp; Simulador Integrado (Física II)</span>
+              <span class="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-semibold">estudos/fisica-2/P3</span>
+            </h3>
+            <p class="text-xs text-slate-400">12 provas oficiais de P3 (15.1 a 26.1), 7 com correção automática (105 questões), formulário oficial e colinha P3.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="/simulador-fisica/" target="_blank" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-lg transition shadow-sm">
+              🚀 Abrir Simulador P3 ↗
+            </a>
+            <button onclick="loadFisicaFiles()" class="text-xs bg-hud-cardHover text-amber-400 border border-hud-border px-3 py-2 rounded-lg transition">
+              🔄 Recarregar
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Access P3 References -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="p-3.5 bg-hud-bg/60 rounded-xl border border-hud-border flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-xl">📐</span>
+              <div class="min-w-0">
+                <h4 class="text-xs font-bold text-white truncate">Formulário Oficial P3</h4>
+                <p class="text-[11px] text-slate-400 truncate">Faraday, RL/LC/RLC, CA, Maxwell</p>
+              </div>
+            </div>
+            <a href="/estudos/fisica-2/formulario-fisica-2-p3.png" target="_blank" class="text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2.5 py-1.5 rounded-lg transition shrink-0">
+              Abrir ↗
+            </a>
+          </div>
+
+          <div class="p-3.5 bg-hud-bg/60 rounded-xl border border-hud-border flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-xl">💡</span>
+              <div class="min-w-0">
+                <h4 class="text-xs font-bold text-white truncate">Resumo P3 (Colinha)</h4>
+                <p class="text-[11px] text-slate-400 truncate">Fórmulas comentadas e macetes</p>
+              </div>
+            </div>
+            <a href="/estudos/fisica-2/RESUMO_P3_COLINHA_DEFINITIVA.md" target="_blank" class="text-[11px] bg-sky-600 hover:bg-sky-500 text-white font-bold px-2.5 py-1.5 rounded-lg transition shrink-0">
+              Abrir ↗
+            </a>
+          </div>
+
+          <div class="p-3.5 bg-hud-bg/60 rounded-xl border border-hud-border flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-xl">✅</span>
+              <div class="min-w-0">
+                <h4 class="text-xs font-bold text-white truncate">Gabaritos P3 (18.1–26.1)</h4>
+                <p class="text-[11px] text-slate-400 truncate">7 provas verificadas</p>
+              </div>
+            </div>
+            <a href="/estudos/fisica-2/gabaritos_P3.md" target="_blank" class="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1.5 rounded-lg transition shrink-0">
+              Abrir ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- P3 Exams Grid -->
+        <div class="space-y-3 pt-1">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Provas Anteriores de P3 (Física II)</h4>
+            <input type="text" id="fisica-search" oninput="filterFisicaFiles(this.value)" placeholder="🔍 Filtrar período (ex: 26.1, 25.2, 24.1)..." class="text-xs bg-hud-bg/80 border border-hud-border rounded-lg px-3 py-1 text-white w-64 focus:outline-none focus:border-amber-500">
+          </div>
+          <div id="fisica-files-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <!-- Dynamic P3 exam cards -->
+          </div>
+        </div>
+      </div>
+
       <!-- CÁLCULO III MATERIAL DIDÁTICO & LISTAS DE EXERCÍCIOS -->
       <div class="bg-hud-card rounded-xl border border-hud-border p-5 space-y-4">
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
               <span>📚 Material Didático & Listas de Exercícios (Cálculo III)</span>
-              <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-semibold">~/Downloads/calc</span>
+              <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-semibold">estudos/calculo-3</span>
             </h3>
             <p class="text-xs text-slate-400">Apostila completa, cronograma do período e listas EP1 a EP15 com enunciados e gabaritos.</p>
           </div>
@@ -444,6 +518,7 @@
     let appData = {};
     let allCalcFiles = [];
     let allAntigravityProjects = [];
+    let allFisicaFiles = [];
     let isFocusing = false;
     let timerInterval = null;
     let secondsLeft = 25 * 60;
@@ -457,6 +532,7 @@
         renderDisciplinas();
         renderReferencias();
         renderConfig();
+        loadFisicaFiles();
         loadCalcFiles();
         loadAntigravityProjects();
         loadWritingData();
@@ -527,12 +603,19 @@
           }
           metaDisplay = `<span class="text-emerald-400 font-semibold">P2 ≥ ${d.meta_p2 || 4.9}</span>`;
         } else if (d.id === 'fisica2') {
-          if (d.p1 !== null && d.p2 !== null) {
+          if (d.p1 !== null && d.p2 !== null && d.p3 !== null) {
+            const avg123 = (d.p1 + d.p2 + d.p3) / 3;
+            mediaDisplay = `<b class="${avg123 >= 6.0 ? 'text-emerald-400' : 'text-rose-400'}">${avg123.toFixed(1)} (P1+P2+P3/3)</b>`;
+            metaDisplay = `<span class="text-emerald-400 font-semibold">P3: ${d.p3}</span>`;
+          } else if (d.p1 !== null && d.p2 !== null) {
             const avg12 = (d.p1 + d.p2) / 2;
+            const needP3 = Math.max(0, 18.0 - d.p1 - d.p2);
             mediaDisplay = `<span class="text-sky-400 font-bold">${avg12.toFixed(1)} (P1+P2/2)</span>`;
+            metaDisplay = `<span class="text-amber-400 font-semibold">P3 ≥ ${needP3.toFixed(1)}</span>`;
+          } else {
+            const p3Val = d.p3 !== null ? d.p3 : 'Pendente';
+            metaDisplay = `<span class="text-amber-400 font-semibold">P3: ${p3Val}</span>`;
           }
-          const p3Val = d.p3 !== null ? d.p3 : 'Pendente';
-          metaDisplay = `<span class="text-amber-400 font-semibold">P3: ${p3Val}</span>`;
         }
 
         tr.innerHTML = `
@@ -552,7 +635,7 @@
           <td class="px-4 py-3 text-center">${mediaDisplay}</td>
           <td class="px-4 py-3 text-center text-xs">${metaDisplay}</td>
           <td class="px-4 py-3 text-right">
-            ${d.id === 'fisica2' ? '<a href="http://localhost:8080" target="_blank" class="text-xs text-purple-400 hover:underline mr-2">🚀 Simulador</a>' : ''}
+            ${d.id === 'fisica2' ? '<a href="/simulador-fisica/" target="_blank" class="text-xs text-amber-400 hover:underline mr-2 font-semibold">🚀 Simulador P3</a>' : ''}
             <button onclick="removeDisciplina(${idx})" class="text-xs text-rose-400 hover:text-rose-300">✕</button>
           </td>
         `;
@@ -573,6 +656,67 @@
       const el = document.getElementById('sim-meta-res');
       el.innerText = Math.max(0, meta).toFixed(1);
       document.getElementById('sim-status').innerText = `Com P1=${p1.toFixed(1)}, precisa de ${Math.max(0, meta).toFixed(1)} na P2`;
+    }
+
+    // Física II (P3) Files
+    async function loadFisicaFiles() {
+      try {
+        const res = await fetch('/api/fisica/files');
+        allFisicaFiles = await res.json();
+        renderFisicaFiles(allFisicaFiles);
+      } catch (e) {}
+    }
+
+    function renderFisicaFiles(files) {
+      const grid = document.getElementById('fisica-files-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      if (!files || files.length === 0) {
+        grid.innerHTML = '<div class="text-xs text-slate-400 col-span-3">Nenhuma prova P3 encontrada em estudos/fisica-2/P3.</div>';
+        return;
+      }
+
+      files.forEach(f => {
+        const card = document.createElement('div');
+        card.className = "p-3 bg-hud-bg/70 hover:bg-hud-bg rounded-lg border border-hud-border flex items-center justify-between gap-2 text-xs";
+        const badge = f.has_gabarito
+          ? `<span class="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">✓ Gabarito (${f.total_questions}Q)</span>`
+          : `<span class="text-[10px] bg-slate-700/60 text-slate-300 border border-slate-600/50 px-1.5 py-0.5 rounded">${f.note || 'Treino livre'}</span>`;
+        const simUrl = `/simulador-fisica/?exam=${encodeURIComponent(f.id)}`;
+        const pdfUrl = encodeURI(f.pdf_url);
+
+        card.innerHTML = `
+          <div class="min-w-0">
+            <div class="font-bold text-white truncate" title="${f.name}">📄 ${f.id}</div>
+            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+              ${badge}
+              <span class="text-[10px] text-slate-500">${f.total_pages || '?'} pág</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <a href="${simUrl}" target="_blank" class="text-[11px] bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 px-2.5 py-1 rounded font-bold transition">
+              ▶ Simular
+            </a>
+            <a href="${pdfUrl}" target="_blank" class="text-[11px] bg-sky-600/25 hover:bg-sky-600 text-sky-300 hover:text-white px-2 py-1 rounded font-semibold transition">
+              PDF
+            </a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterFisicaFiles(q) {
+      if (!q.trim()) {
+        renderFisicaFiles(allFisicaFiles);
+        return;
+      }
+      const qLow = q.toLowerCase();
+      const filtered = allFisicaFiles.filter(
+        f => (f.id || '').toLowerCase().includes(qLow) || (f.name || '').toLowerCase().includes(qLow) || (f.note || '').toLowerCase().includes(qLow)
+      );
+      renderFisicaFiles(filtered);
     }
 
     // Cálculo III Files

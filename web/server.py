@@ -5,10 +5,12 @@ Delega toda lógica de negócios para ``core.*`` (zero chamadas diretas a subpro
 """
 
 import json
+import mimetypes
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+from urllib.parse import unquote, urlsplit
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if BASE_DIR not in sys.path:
@@ -28,10 +30,13 @@ from core import (
 )
 from core.logs import get_logger, setup_logging
 from core.settings import WEB_HOST, WEB_PORT
-from core.storage import write_json
+from core.storage import read_json, write_json
 from core.workspace import discover_develop_dir
 
 log = get_logger("hud.web")
+
+mimetypes.add_type("text/markdown; charset=utf-8", ".md")
+mimetypes.add_type("application/pdf", ".pdf")
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -56,35 +61,50 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self):
-        if self.path in ("/", "/index.html"):
+        route = urlsplit(self.path).path
+
+        if route in ("/", "/index.html"):
             self._serve_file(os.path.join(paths.WEB_DIR, "index.html"), "text/html; charset=utf-8")
-        elif self.path == "/focus.pac":
+        elif route == "/simulador-fisica":
+            self.send_response(302)
+            self.send_header("Location", "/simulador-fisica/")
+            self.end_headers()
+        elif route.startswith("/simulador-fisica/"):
+            rel = unquote(route[len("/simulador-fisica/"):]).lstrip("/") or "index.html"
+            self._serve_static_under(paths.SIMULADOR_FISICA_DIR, rel)
+        elif route.startswith("/estudos/"):
+            rel = unquote(route[len("/estudos/"):]).lstrip("/")
+            self._serve_static_under(paths.ESTUDOS_DIR, rel)
+        elif route == "/focus.pac":
             if not os.path.exists(paths.PAC_FILE):
                 focus.generate_pac_file()
             self._serve_file(paths.PAC_FILE, "application/x-ns-proxy-autoconfig")
-        elif self.path == "/api/data":
+        elif route == "/api/data":
             self._send_json(study.ensure_current_day())
-        elif self.path == "/api/repos":
+        elif route == "/api/repos":
             self._send_json(projects.scan_repos())
-        elif self.path == "/api/antigravity/projects":
+        elif route == "/api/antigravity/projects":
             self._send_json(projects.scan_projects().get("projects", []))
-        elif self.path == "/api/projects/pinned":
+        elif route == "/api/projects/pinned":
             self._send_json(projects.load_pinned())
-        elif self.path == "/api/writing":
+        elif route == "/api/writing":
             self._send_json(writing.scan_writing())
-        elif self.path == "/api/bluetooth/status":
+        elif route == "/api/bluetooth/status":
             self._send_json(bluetooth.status())
-        elif self.path == "/api/bluetooth/devices":
+        elif route == "/api/bluetooth/devices":
             self._send_json(bluetooth.devices())
-        elif self.path == "/api/calc/files":
+        elif route == "/api/calc/files":
             self._serve_calc_files()
-        elif self.path == "/api/nodes":
+        elif route == "/api/fisica/files":
+            self._serve_fisica_files()
+        elif route == "/api/nodes":
             self._send_json({"status": "ok", "nodes": nodes.load_environments()})
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"Not Found")
 
     def do_POST(self):
+        route = urlsplit(self.path).path
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length) if content_length > 0 else b"{}"
         try:
@@ -92,56 +112,78 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
-        if self.path == "/api/data":
+        if route == "/api/data":
             write_json(paths.DATA_FILE, payload)
             self._send_json({"status": "ok"})
-        elif self.path == "/api/projects/pinned":
+        elif route == "/api/study/log":
+            subject = str(payload.get("subject", "fisica2")).strip() or "fisica2"
+            questions = max(0, int(payload.get("questions", 1)))
+            topic = str(payload.get("topic", "")).strip()
+            ok = study.record_session(subject, questions=questions, topic=topic)
+            self._send_json({"status": "ok", "matched": ok, "questions": questions})
+        elif route == "/api/projects/pinned":
             items = payload.get("projects", [])
             projects.save_pinned(items)
             self._send_json({"status": "ok", "count": len(items)})
-        elif self.path == "/api/focus/start":
+        elif route == "/api/focus/start":
             focus.activate()
             self._send_json({"status": "ok", "focus": True})
-        elif self.path == "/api/focus/stop":
+        elif route == "/api/focus/stop":
             focus.deactivate()
             self._send_json({"status": "ok", "focus": False})
-        elif self.path == "/api/git/push":
+        elif route == "/api/git/push":
             self._handle_push(payload)
-        elif self.path == "/api/git/sync":
+        elif route == "/api/git/sync":
             nodes.write_local_heartbeat()
             ok, msg = git_sync.sync_once()
             self._send_json({"status": "ok" if ok else "error", "message": msg})
-        elif self.path in ("/api/open-ide", "/api/antigravity/open"):
+        elif route in ("/api/open-ide", "/api/antigravity/open"):
             path = payload.get("path", "")
             if path and os.path.exists(path):
                 launchers.open_in_ide(path)
             self._send_json({"status": "ok"})
-        elif self.path == "/api/antigravity/terminal":
+        elif route == "/api/antigravity/terminal":
             path = payload.get("path", "")
             if path and os.path.exists(path):
                 launchers.open_terminal(path)
             self._send_json({"status": "ok"})
-        elif self.path == "/api/nodes/remote":
+        elif route == "/api/nodes/remote":
             ok = nodes.trigger_remote_control(payload)
             self._send_json({"status": "ok" if ok else "error"})
-        elif self.path == "/api/writing/chapter":
+        elif route == "/api/writing/chapter":
             self._handle_create_chapter(payload)
-        elif self.path == "/api/bluetooth/power":
+        elif route == "/api/bluetooth/power":
             ok, msg = bluetooth.set_power(bool(payload.get("power", True)))
             self._send_json({"status": "ok" if ok else "error", "message": msg})
-        elif self.path == "/api/bluetooth/scan":
+        elif route == "/api/bluetooth/scan":
             self._send_json(bluetooth.scan(seconds=5))
-        elif self.path == "/api/bluetooth/connect":
+        elif route == "/api/bluetooth/connect":
             self._handle_bt_action(payload, bluetooth.connect)
-        elif self.path == "/api/bluetooth/disconnect":
+        elif route == "/api/bluetooth/disconnect":
             self._handle_bt_action(payload, bluetooth.disconnect)
-        elif self.path == "/api/bluetooth/pair":
+        elif route == "/api/bluetooth/pair":
             self._handle_bt_action(payload, bluetooth.pair)
-        elif self.path == "/api/calc/open":
+        elif route in ("/api/calc/open", "/api/fisica/open"):
             self._handle_calc_open(payload)
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"Not Found")
+
+    def _serve_static_under(self, base_dir: str, rel_path: str):
+        base_real = os.path.realpath(base_dir)
+        target_real = os.path.realpath(os.path.join(base_real, rel_path))
+        if not (target_real == base_real or target_real.startswith(base_real + os.sep)):
+            self._set_headers(403, "text/plain")
+            self.wfile.write(b"Forbidden")
+            return
+        if os.path.isdir(target_real):
+            target_real = os.path.join(target_real, "index.html")
+        ctype, _ = mimetypes.guess_type(target_real)
+        if not ctype:
+            ctype = "application/octet-stream"
+        elif (ctype.startswith("text/") or ctype == "application/json") and "charset=" not in ctype:
+            ctype = f"{ctype}; charset=utf-8"
+        self._serve_file(target_real, ctype)
 
     def _serve_file(self, filepath: str, content_type: str):
         if os.path.exists(filepath):
@@ -152,6 +194,36 @@ class HUDRequestHandler(BaseHTTPRequestHandler):
         else:
             self._set_headers(404, "text/plain")
             self.wfile.write(b"File not found")
+
+    def _serve_fisica_files(self):
+        exams_meta = read_json(os.path.join(paths.SIMULADOR_FISICA_DIR, "exams.json"), []) or []
+        by_pdf = {os.path.basename(e.get("pdfUrl", "")): e for e in exams_meta}
+        items = []
+        if os.path.isdir(paths.FISICA_P3_DIR):
+            for fname in sorted(os.listdir(paths.FISICA_P3_DIR), reverse=True):
+                if not fname.lower().endswith(".pdf"):
+                    continue
+                fp = os.path.join(paths.FISICA_P3_DIR, fname)
+                meta = by_pdf.get(fname, {})
+                try:
+                    size_kb = round(os.path.getsize(fp) / 1024, 1)
+                except OSError:
+                    size_kb = 0.0
+                items.append(
+                    {
+                        "id": meta.get("id", fname.replace(".pdf", "")),
+                        "name": fname,
+                        "semester": meta.get("semester", ""),
+                        "path": fp,
+                        "pdf_url": f"/estudos/fisica-2/P3/{fname}",
+                        "size_kb": size_kb,
+                        "total_pages": meta.get("totalPages", 0),
+                        "total_questions": meta.get("totalQuestions", 15),
+                        "has_gabarito": bool(meta.get("gabarito")),
+                        "note": meta.get("note", ""),
+                    }
+                )
+        self._send_json(items)
 
     def _handle_create_chapter(self, payload: dict):
         title = str(payload.get("title", "")).strip()

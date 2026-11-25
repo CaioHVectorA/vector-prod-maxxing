@@ -41,7 +41,7 @@
         "regra": "media_provas_testes",
         "data_p3": "2026-12-05",
         "ultimo_estudo": "2026-11-01T18:45:00",
-        "simulador_url": "http://localhost:8080",
+        "simulador_url": "http://localhost:8090/simulador-fisica/",
         "questoes_file": "fisica2.json"
       },
       {
@@ -80,18 +80,23 @@
   },
   "referencias": [
     {
-      "title": "Simulador de Provas de Física II (UFF)",
-      "url": "http://localhost:8080",
+      "title": "Simulador de Provas P3 — Física II (UFF)",
+      "url": "http://localhost:8090/simulador-fisica/",
+      "category": "estudos"
+    },
+    {
+      "title": "Resumo P3 Física II (Colinha Definitiva)",
+      "url": "http://localhost:8090/estudos/fisica-2/RESUMO_P3_COLINHA_DEFINITIVA.md",
+      "category": "estudos"
+    },
+    {
+      "title": "Formulário Oficial P3 — Física II",
+      "url": "http://localhost:8090/estudos/fisica-2/formulario-fisica-2-p3.png",
       "category": "estudos"
     },
     {
       "title": "Portal do Aluno - IdUFF",
       "url": "https://app.uff.br/iduff/",
-      "category": "estudos"
-    },
-    {
-      "title": "Resumo P2 Física 2 (Colinha Definitiva)",
-      "url": "file:///home/usuario/develop/Pfisicas/RESUMO_P2_COLINHA_DEFINITIVA.md",
       "category": "estudos"
     },
     {

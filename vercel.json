@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/web/simulador_fisica/index.html" },
+    { "source": "/exams.json", "destination": "/web/simulador_fisica/exams.json" },
+    { "source": "/simulador-fisica", "destination": "/web/simulador_fisica/index.html" },
+    { "source": "/simulador-fisica/", "destination": "/web/simulador_fisica/index.html" },
+    { "source": "/simulador-fisica/:path*", "destination": "/web/simulador_fisica/:path*" }
+  ]
+}
