@@ -1,0 +1,118 @@
+[
+  {
+    "id": "P3 (26.1) Física 2",
+    "title": "P3 (26.1) Física 2",
+    "semester": "26.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (26.1) Física 2.pdf",
+    "totalPages": 7,
+    "totalQuestions": 15,
+    "gabarito": ["E", "C", "D", "B", "A", "B", "E", "B", "C", "C", "C", "A", "D", "D", "A"]
+  },
+  {
+    "id": "P3 (25.2) Física 2",
+    "title": "P3 (25.2) Física 2",
+    "semester": "25.2",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (25.2) Física 2.pdf",
+    "totalPages": 7,
+    "totalQuestions": 15,
+    "gabarito": ["A", "E", "D", "D", "A", "C", "B", "C", "C", "C", "B", "D", "B", "E", "C"]
+  },
+  {
+    "id": "P3 (25.1) Física 2",
+    "title": "P3 (25.1) Física 2",
+    "semester": "25.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (25.1) Física 2.pdf",
+    "totalPages": 6,
+    "totalQuestions": 15,
+    "gabarito": ["C", "D", "A", "C", "A", "B", "D", "B", "A", "C", "D", "C", "B", "E", "A"]
+  },
+  {
+    "id": "P3 (24.2) Física 2",
+    "title": "P3 (24.2) Física 2",
+    "semester": "24.2",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (24.2) Física 2.pdf",
+    "totalPages": 7,
+    "totalQuestions": 15,
+    "gabarito": ["B", "D", "B", "C", "B", "B", "D", "D", "B", "C", "E", "C", "D", "A", "A"]
+  },
+  {
+    "id": "P3 (24.1) Física 2",
+    "title": "P3 (24.1) Física 2",
+    "semester": "24.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (24.1) Física 2.pdf",
+    "totalPages": 7,
+    "totalQuestions": 15,
+    "gabarito": ["B", "A", "C", "E", "D", "C", "E", "B", "E", "A", "A", "E", "A", "B", "D"]
+  },
+  {
+    "id": "P3 (22.1) Física 2",
+    "title": "P3 (22.1) Física 2",
+    "semester": "22.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (22.1) Física 2.pdf",
+    "totalPages": 8,
+    "totalQuestions": 15,
+    "gabarito": ["A", "D", "D", "A", "A", "A", "B", "E", "B", "E", "B", "C", "D", "B", "C"]
+  },
+  {
+    "id": "P3 (18.1) Física 2",
+    "title": "P3 (18.1) Física 2",
+    "semester": "18.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (18.1) Física 2.pdf",
+    "totalPages": 6,
+    "pageStart": 1,
+    "pageEnd": 6,
+    "totalQuestions": 15,
+    "note": "Tipo 1 (págs. 1–6)",
+    "gabarito": ["D", "A", "B", "E", "D", "B", "A", "E", "C", "E", "A", "C", "B", "C", "D"]
+  },
+  {
+    "id": "P3 (17.2) Física 2",
+    "title": "P3 (17.2) Física 2",
+    "semester": "17.2",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (17.2) Física 2.pdf",
+    "totalPages": 8,
+    "totalQuestions": 15,
+    "note": "Treino livre",
+    "gabarito": []
+  },
+  {
+    "id": "P3 (16.2) Física 2",
+    "title": "P3 (16.2) Física 2",
+    "semester": "16.2",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (16.2) Física 2.pdf",
+    "totalPages": 7,
+    "totalQuestions": 15,
+    "note": "Escaneada · Treino livre",
+    "gabarito": []
+  },
+  {
+    "id": "P3 (16.1) Física 2",
+    "title": "P3 (16.1) Física 2",
+    "semester": "16.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (16.1) Física 2.pdf",
+    "totalPages": 6,
+    "totalQuestions": 15,
+    "note": "Escaneada · Treino livre",
+    "gabarito": []
+  },
+  {
+    "id": "P3 (15.2) Física 2",
+    "title": "P3 (15.2) Física 2",
+    "semester": "15.2",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (15.2) Física 2.pdf",
+    "totalPages": 6,
+    "totalQuestions": 10,
+    "note": "Discursiva",
+    "gabarito": []
+  },
+  {
+    "id": "P3 (15.1) Física 2",
+    "title": "P3 (15.1) Física 2",
+    "semester": "15.1",
+    "pdfUrl": "/estudos/fisica-2/P3/P3 (15.1) Física 2.pdf",
+    "totalPages": 4,
+    "totalQuestions": 10,
+    "note": "Escaneada · Treino livre",
+    "gabarito": []
+  }
+]

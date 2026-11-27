@@ -450,11 +450,7 @@ class StudyWidget(QFrame):
                 self.combo_q_subject.setCurrentIndex(idx)
 
     def _launch_pfisicas_simulador(self):
-        pfisicas_dir = find_project_subdir("Pfisicas")
-        sh_script = os.path.join(pfisicas_dir, "iniciar_simulador.sh")
-        if IS_LINUX and os.path.exists(sh_script):
-            proc.spawn(["bash", sh_script], cwd=pfisicas_dir)
-        launchers.open_path("http://localhost:8080")
+        launchers.open_path(f"http://localhost:{WEB_PORT}/simulador-fisica/")
 
     def _toggle_focus(self):
         if self.is_focusing:

@@ -339,7 +339,7 @@
         "regra": "media_provas_testes",
         "data_p3": "2026-12-05",
         "ultimo_estudo": "2026-11-01T18:45:00",
-        "simulador_url": "http://localhost:8080",
+        "simulador_url": "http://localhost:8090/simulador-fisica/",
         "questoes_file": "fisica2.json"
       }
     ],

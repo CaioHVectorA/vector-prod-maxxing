@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Provas - Física II (P3)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .latex-content h1, .latex-content h2, .latex-content h3 {
+      color: #38bdf8;
+      font-weight: 700;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .latex-content ul { list-style: disc; padding-left: 1.25rem; margin: 0.5rem 0; }
+    .latex-content li { margin: 0.25rem 0; }
+    .latex-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .latex-content th, .latex-content td { border: 1px solid #334155; padding: 8px 12px; }
+    .latex-content th { background-color: #1e293b; color: #38bdf8; }
+    .latex-content blockquote {
+      border-left: 4px solid #38bdf8;
+      background-color: #1e293b;
+      padding: 8px 16px;
+      margin: 12px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    #answer-card:not([open]) { display: none; }
+    #answer-card::backdrop { background: rgb(2 6 23 / 0.75); backdrop-filter: blur(4px); }
+    #answer-card {
+      width: min(36rem, calc(100vw - 1rem));
+      height: min(85dvh, 52rem);
+      max-height: calc(100dvh - 2rem);
+      margin: auto;
+      padding: 0;
+      color: inherit;
+    }
+    .app-shell { height: 100vh; height: 100dvh; }
+    @media (max-width: 639px) {
+      .answer-option { min-width: 40px; min-height: 44px; }
+      .answer-row { flex-wrap: wrap; gap: 8px; }
+      .document-toolbar { height: auto; min-height: 44px; flex-wrap: wrap; gap: 8px; padding-top: 6px; padding-bottom: 6px; }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100">
+  <div id="root" class="h-full w-full flex flex-col"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    function PdfPageCanvas({ pdfDoc, pageNumber, scale }) {
+      const canvasRef = useRef(null);
+      const renderTaskRef = useRef(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        let cancelled = false;
+        if (!pdfDoc || !canvasRef.current) return;
+
+        setLoading(true);
+        pdfDoc.getPage(pageNumber).then(page => {
+          if (cancelled) return;
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const viewport = page.getViewport({ scale: scale * dpr });
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.width = '100%';
+          canvas.style.height = 'auto';
+
+          if (renderTaskRef.current) {
+            try { renderTaskRef.current.cancel(); } catch (_) {}
+          }
+          const task = page.render({ canvasContext: ctx, viewport });
+          renderTaskRef.current = task;
+          task.promise.then(() => {
+            if (!cancelled) setLoading(false);
+          }).catch(() => {});
+        }).catch(() => {});
+
+        return () => {
+          cancelled = true;
+          if (renderTaskRef.current) {
+            try { renderTaskRef.current.cancel(); } catch (_) {}
+          }
+        };
+      }, [pdfDoc, pageNumber, scale]);
+
+      return (
+        <div className="relative w-full bg-white">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/10 text-slate-500 text-xs font-semibold">
+              Renderizando pág. {pageNumber}...
+            </div>
+          )}
+          <canvas ref={canvasRef} className="w-full h-auto block" />
+        </div>
+      );
+    }
+
+    function App() {
+      const [exams, setExams] = useState([]);
+      const [selectedExam, setSelectedExam] = useState(null);
+      const [pdfDoc, setPdfDoc] = useState(null);
+      const [pdfError, setPdfError] = useState(false);
+      const [pdfLoading, setPdfLoading] = useState(false);
+      const [answers, setAnswers] = useState({});
+      const [currentPage, setCurrentPage] = useState(0);
+      const [zoom, setZoom] = useState(100);
+      const [formulaZoom, setFormulaZoom] = useState(100);
+      const [timeLeft, setTimeLeft] = useState(7200);
+      const [isTimerRunning, setIsTimerRunning] = useState(false);
+      const [isSubmitted, setIsSubmitted] = useState(false);
+      const [hudLogStatus, setHudLogStatus] = useState('');
+      const [fullSummaryMarkdown, setFullSummaryMarkdown] = useState('');
+      const [viewMode, setViewMode] = useState('single');
+      const [activeTab, setActiveTab] = useState('exam');
+      const [showExtraSummary, setShowExtraSummary] = useState(false);
+      const answerCardRef = useRef(null);
+      const [isCardOpen, setIsCardOpen] = useState(false);
+
+      useEffect(() => {
+        const dialog = answerCardRef.current;
+        if (!dialog) return;
+        if (isCardOpen && !dialog.open) dialog.showModal();
+        else if (!isCardOpen && dialog.open) dialog.close();
+      }, [isCardOpen]);
+
+      // Load exams list & P3 cheat sheet
+      useEffect(() => {
+        fetch('exams.json')
+          .then(res => res.json())
+          .then(data => {
+            setExams(data);
+            if (data.length > 0) {
+              const params = new URLSearchParams(window.location.search);
+              const requested = params.get('exam');
+              const match = requested
+                ? data.find(e => e.id === requested || e.semester === requested)
+                : null;
+              setSelectedExam(match || data[0]);
+            }
+          })
+          .catch(err => console.error('Erro ao carregar exams.json:', err));
+
+        fetch('/estudos/fisica-2/RESUMO_P3_COLINHA_DEFINITIVA.md')
+          .then(res => (res.ok ? res.text() : ''))
+          .then(text => setFullSummaryMarkdown(text))
+          .catch(() => {});
+      }, []);
+
+      // Load PDF when exam changes
+      useEffect(() => {
+        if (!selectedExam) return;
+        setAnswers({});
+        setCurrentPage(0);
+        setIsSubmitted(false);
+        setHudLogStatus('');
+        setTimeLeft(7200);
+        setIsTimerRunning(false);
+        setPdfDoc(null);
+        setPdfError(false);
+
+        if (!window.pdfjsLib) {
+          setPdfError(true);
+          return;
+        }
+
+        let cancelled = false;
+        setPdfLoading(true);
+        const task = window.pdfjsLib.getDocument(encodeURI(selectedExam.pdfUrl));
+        task.promise
+          .then(doc => {
+            if (!cancelled) {
+              setPdfDoc(doc);
+              setPdfLoading(false);
+            }
+          })
+          .catch(err => {
+            console.error('Erro PDF.js:', err);
+            if (!cancelled) {
+              setPdfError(true);
+              setPdfLoading(false);
+            }
+          });
+
+        return () => {
+          cancelled = true;
+          try { task.destroy(); } catch (_) {}
+        };
+      }, [selectedExam]);
+
+      // Compute visible page numbers (supports pageStart/pageEnd slicing, e.g. 18.1 Tipo 1)
+      const pageNumbers = (() => {
+        if (!selectedExam) return [];
+        const start = selectedExam.pageStart || 1;
+        const rawTotal = pdfDoc ? pdfDoc.numPages : selectedExam.totalPages || 1;
+        const end = selectedExam.pageEnd ? Math.min(selectedExam.pageEnd, rawTotal) : rawTotal;
+        const arr = [];
+        for (let p = start; p <= end; p++) arr.push(p);
+        return arr;
+      })();
+
+      // Keyboard navigation for single-page mode
+      useEffect(() => {
+        const onKey = (e) => {
+          if (activeTab !== 'exam' || viewMode !== 'single' || isCardOpen) return;
+          if (e.key === 'ArrowRight') {
+            setCurrentPage(p => Math.min(pageNumbers.length - 1, p + 1));
+          } else if (e.key === 'ArrowLeft') {
+            setCurrentPage(p => Math.max(0, p - 1));
+          }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [activeTab, viewMode, isCardOpen, pageNumbers.length]);
+
+      // Timer effect
+      useEffect(() => {
+        let interval = null;
+        if (isTimerRunning && timeLeft > 0 && !isSubmitted) {
+          interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        } else if (timeLeft === 0 && !isSubmitted) {
+          setIsSubmitted(true);
+        }
+        return () => clearInterval(interval);
+      }, [isTimerRunning, timeLeft, isSubmitted]);
+
+      // Render KaTeX in summary
+      useEffect(() => {
+        if (activeTab === 'formulas' && showExtraSummary && window.renderMathInElement) {
+          setTimeout(() => {
+            const el = document.getElementById('extra-summary-content');
+            if (el) {
+              window.renderMathInElement(el, {
+                delimiters: [
+                  { left: '$$', right: '$$', display: true },
+                  { left: '$', right: '$', display: false },
+                  { left: '\\(', right: '\\)', display: false },
+                  { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+              });
+            }
+          }, 50);
+        }
+      }, [activeTab, showExtraSummary, fullSummaryMarkdown]);
+
+      const formatTime = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      };
+
+      const handleSelectOption = (qIndex, option) => {
+        if (isSubmitted) return;
+        setAnswers(prev => ({
+          ...prev,
+          [qIndex]: prev[qIndex] === option ? null : option
+        }));
+        if (!isTimerRunning) setIsTimerRunning(true);
+      };
+
+      const calculateResult = () => {
+        if (!selectedExam || !selectedExam.gabarito || selectedExam.gabarito.length === 0) {
+          return {
+            hasGabarito: false,
+            correct: 0,
+            total: selectedExam ? selectedExam.totalQuestions : 0,
+            percentage: 0,
+            grade: '—'
+          };
+        }
+        const total = selectedExam.gabarito.length;
+        let correct = 0;
+        selectedExam.gabarito.forEach((g, idx) => {
+          if (answers[idx] === g) correct++;
+        });
+        const percentage = Math.round((correct / total) * 100);
+        const grade = ((correct / total) * 10).toFixed(1);
+        return { hasGabarito: true, correct, total, percentage, grade };
+      };
+
+      const logSimuladoToHud = async () => {
+        if (!selectedExam) return;
+        setHudLogStatus('Salvando...');
+        const resCalc = calculateResult();
+        const count = Math.max(1, totalAnswered || (resCalc.hasGabarito ? resCalc.total : 1));
+        const topic = resCalc.hasGabarito
+          ? `Simulado ${selectedExam.title} (${resCalc.correct}/${resCalc.total} · Nota ${resCalc.grade})`
+          : `Treino ${selectedExam.title}`;
+        try {
+          const r = await fetch('/api/study/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject: 'fisica2', questions: count, topic })
+          });
+          if (r.ok) {
+            setHudLogStatus(`✓ Registrado (+${count} questões no HUD)`);
+          } else {
+            setHudLogStatus('Erro ao registrar');
+          }
+        } catch (_) {
+          setHudLogStatus('Servidor HUD offline');
+        }
+      };
+
+      const result = isSubmitted ? calculateResult() : null;
+      const totalAnswered = Object.keys(answers).filter(k => answers[k] !== null).length;
+
+      return (
+        <div className="app-shell flex flex-col w-full min-w-0 bg-slate-950 text-slate-100 select-none overflow-hidden">
+          {/* Top Navbar */}
+          <header className="bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between px-3 md:px-6 py-2.5 shrink-0 shadow-lg z-20 gap-2">
+            <div className="flex items-center space-x-3">
+              <a
+                href="/"
+                title="Voltar para o Centro de Comando HUD"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 transition"
+              >
+                ← HUD
+              </a>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center font-black text-lg text-slate-950 shadow-md shadow-amber-500/20 shrink-0">
+                F2
+              </div>
+              <div>
+                <h1 className="font-bold text-sm md:text-base text-white leading-tight flex items-center gap-1.5">
+                  Simulador de Física II
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-700/60">
+                    P3
+                  </span>
+                </h1>
+                <p className="text-[11px] text-slate-400 hidden sm:block">
+                  12 provas oficiais UFF · Correção Automática &amp; Formulário P3
+                </p>
+              </div>
+            </div>
+
+            {/* Exam Selector */}
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-400 font-medium hidden sm:inline">Prova:</span>
+              <select
+                value={selectedExam ? selectedExam.id : ''}
+                onChange={(e) => {
+                  const exam = exams.find(x => x.id === e.target.value);
+                  setSelectedExam(exam);
+                }}
+                className="bg-slate-800 text-amber-300 font-semibold text-xs md:text-sm rounded-lg px-2.5 py-1.5 border border-slate-700 hover:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer shadow-inner max-w-[220px] sm:max-w-[300px]"
+              >
+                {exams.map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.title} {e.gabarito && e.gabarito.length > 0 ? `(${e.gabarito.length}Q · Gab)` : e.note ? `(${e.note})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Timer & Finish Button */}
+            <div className="flex items-center space-x-2 md:space-x-3 ml-auto sm:ml-0">
+              <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg font-mono text-xs md:text-sm font-bold border transition-all ${
+                timeLeft < 600
+                  ? 'bg-rose-950/60 text-rose-400 border-rose-800 animate-pulse'
+                  : isTimerRunning
+                    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800'
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
+              }`}>
+                <span>⏱️</span>
+                <span>{formatTime(timeLeft)}</span>
+                <button
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className="ml-1 text-[11px] text-slate-400 hover:text-white underline"
+                >
+                  {isTimerRunning ? 'Pausar' : 'Iniciar'}
+                </button>
+              </div>
+
+              {!isSubmitted ? (
+                <button
+                  onClick={() => {
+                    if (confirm('Deseja realmente entregar e corrigir o cartão de respostas?')) {
+                      setIsSubmitted(true);
+                      setIsTimerRunning(false);
+                      setIsCardOpen(true);
+                    }
+                  }}
+                  className="px-3 md:px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-semibold text-xs md:text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95 shrink-0"
+                >
+                  Entregar
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsSubmitted(false);
+                    setAnswers({});
+                    setHudLogStatus('');
+                    setTimeLeft(7200);
+                  }}
+                  className="px-3 md:px-4 py-1.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white font-semibold text-xs md:text-sm transition-all shrink-0"
+                >
+                  Refazer
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* 3 Navigation Tabs */}
+          <nav className="flex border-b border-slate-800 bg-slate-900/95 text-xs md:text-sm font-bold shrink-0 shadow-md">
+            <button
+              onClick={() => setActiveTab('exam')}
+              className={`flex-1 py-3 text-center transition-all flex items-center justify-center gap-2 border-b-2 ${
+                activeTab === 'exam'
+                  ? 'bg-slate-800/90 text-amber-400 border-amber-400 shadow-inner'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40'
+              }`}
+            >
+              <span className="text-base">📄</span>
+              <span>Ver Prova</span>
+              {selectedExam && (
+                <span className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">
+                  {pageNumbers.length} pág
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsCardOpen(true)}
+              aria-haspopup="dialog"
+              aria-controls="answer-card"
+              aria-expanded={isCardOpen}
+              className={`flex-1 py-3 text-center transition-all flex items-center justify-center gap-2 border-b-2 ${
+                isCardOpen
+                  ? 'bg-slate-800/90 text-cyan-400 border-cyan-400 shadow-inner'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40'
+              }`}
+            >
+              <span className="text-base">📝</span>
+              <span>Respostas</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                isSubmitted
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                  : totalAnswered > 0
+                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700'
+                    : 'bg-slate-800 text-slate-400'
+              }`}>
+                {isSubmitted && result && result.hasGabarito
+                  ? `${result.correct}/${result.total}`
+                  : `${totalAnswered}/${selectedExam ? selectedExam.totalQuestions : 15}`}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('formulas')}
+              className={`flex-1 py-3 text-center transition-all flex items-center justify-center gap-2 border-b-2 ${
+                activeTab === 'formulas'
+                  ? 'bg-slate-800/90 text-indigo-400 border-indigo-400 shadow-inner'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40'
+              }`}
+            >
+              <span className="text-base">📐</span>
+              <span>Formulário P3</span>
+              <span className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60">
+                Oficial + Colinha
+              </span>
+            </button>
+          </nav>
+
+          {/* Main Workspace */}
+          <main className="flex-1 min-h-0 min-w-0 flex overflow-hidden relative">
+            {/* TAB 1: Exam PDF Viewer */}
+            <div className={`flex-1 min-w-0 flex flex-col bg-slate-950 overflow-hidden ${
+              activeTab === 'exam' ? 'flex' : 'hidden'
+            }`}>
+              <div className="document-toolbar h-11 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-3 md:px-4 text-xs text-slate-300 shrink-0">
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    disabled={currentPage === 0 || viewMode === 'scroll' || pdfError}
+                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 transition-all font-semibold"
+                  >
+                    ◀
+                  </button>
+                  <span className="font-semibold px-1 sm:px-2">
+                    Pág. <span className="text-amber-400 font-mono font-bold">{currentPage + 1}</span> / {pageNumbers.length || 1}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(pageNumbers.length - 1, prev + 1))}
+                    disabled={currentPage >= pageNumbers.length - 1 || viewMode === 'scroll' || pdfError}
+                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 transition-all font-semibold"
+                  >
+                    ▶
+                  </button>
+                  {selectedExam && selectedExam.note && (
+                    <span className="hidden md:inline-block ml-2 text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      {selectedExam.note}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  {selectedExam && (
+                    <a
+                      href={encodeURI(selectedExam.pdfUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-semibold text-[11px]"
+                    >
+                      📖 PDF Original ↗
+                    </a>
+                  )}
+                  <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                    <button
+                      onClick={() => setViewMode('single')}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        viewMode === 'single' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Pág. Única
+                    </button>
+                    <button
+                      onClick={() => setViewMode('scroll')}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        viewMode === 'scroll' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Todas
+                    </button>
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setZoom(prev => Math.max(60, prev - 15))}
+                      className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center font-bold"
+                    >-</button>
+                    <span className="w-10 text-center font-mono font-bold text-amber-400 text-xs">{zoom}%</span>
+                    <button
+                      onClick={() => setZoom(prev => Math.min(200, prev + 15))}
+                      className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center font-bold"
+                    >+</button>
+                    <button
+                      onClick={() => setZoom(100)}
+                      className="hidden sm:inline-block px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-[10px]"
+                    >Reset</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* PDF Canvas Area */}
+              <div className="flex-1 overflow-auto custom-scroll p-3 md:p-6 flex justify-center items-start bg-slate-950">
+                {!selectedExam ? (
+                  <div className="text-slate-500 m-auto text-center">Carregando provas de P3...</div>
+                ) : pdfError ? (
+                  <iframe
+                    src={encodeURI(selectedExam.pdfUrl)}
+                    className="w-full h-full min-h-[75vh] rounded-lg border border-slate-700 bg-white"
+                    title={selectedExam.title}
+                  />
+                ) : pdfLoading || !pdfDoc ? (
+                  <div className="text-amber-400 m-auto text-center text-sm font-semibold animate-pulse">
+                    Carregando {selectedExam.title}...
+                  </div>
+                ) : viewMode === 'single' ? (
+                  <div
+                    style={{ width: `${zoom}%`, maxWidth: `${zoom * 8.5}px` }}
+                    className="transition-all duration-150 shadow-2xl rounded-sm overflow-hidden bg-white border border-slate-700"
+                  >
+                    <PdfPageCanvas
+                      pdfDoc={pdfDoc}
+                      pageNumber={pageNumbers[currentPage] || 1}
+                      scale={1.5}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{ width: `${zoom}%`, maxWidth: `${zoom * 8.5}px` }}
+                    className="flex flex-col space-y-6 transition-all duration-150"
+                  >
+                    {pageNumbers.map((pgNum, idx) => (
+                      <div key={pgNum} className="shadow-2xl rounded-sm overflow-hidden bg-white border border-slate-700">
+                        <div className="bg-slate-800 text-slate-300 text-xs px-3 py-1 font-semibold border-b border-slate-700 flex justify-between">
+                          <span>Página {idx + 1}</span>
+                          {idx <= 1 && <span className="text-amber-400 font-bold">⭐ Capa / Formulário</span>}
+                        </div>
+                        <PdfPageCanvas pdfDoc={pdfDoc} pageNumber={pgNum} scale={1.35} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* TAB 2: Interactive Answer Card Modal */}
+            <dialog
+              id="answer-card"
+              ref={answerCardRef}
+              aria-labelledby="answer-card-title"
+              onClose={() => setIsCardOpen(false)}
+              onClick={event => { if (event.target === event.currentTarget) setIsCardOpen(false); }}
+              className="bg-slate-900 flex flex-col overflow-hidden rounded-2xl border border-slate-700 shadow-2xl"
+            >
+              <div className="p-3.5 border-b border-slate-800 bg-slate-900/95 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 id="answer-card-title" className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                    <span>📝</span> Cartão de Respostas
+                  </h2>
+                  <span className="text-xs bg-slate-800 text-amber-400 font-semibold px-2.5 py-1 rounded-full border border-slate-700">
+                    {totalAnswered} / {selectedExam ? selectedExam.totalQuestions : 15}
+                  </span>
+                  <button
+                    autoFocus
+                    onClick={() => setIsCardOpen(false)}
+                    aria-label="Fechar cartão de respostas"
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-semibold hover:bg-slate-700"
+                  >
+                    Fechar ✕
+                  </button>
+                </div>
+
+                {isSubmitted && result && (
+                  <div className="mt-3 p-3.5 rounded-xl bg-slate-950 border border-amber-700/60 shadow-inner">
+                    {result.hasGabarito ? (
+                      <>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Resultado Final</p>
+                            <p className="text-2xl font-black text-amber-300">
+                              {result.correct} <span className="text-xs font-normal text-slate-400">/ {result.total} acertos</span>
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Nota</p>
+                            <p className={`text-2xl font-black ${
+                              parseFloat(result.grade) >= 6 ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              {result.grade} <span className="text-xs text-slate-400">/ 10</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 rounded-full ${
+                              result.percentage >= 60
+                                ? 'bg-gradient-to-r from-teal-500 to-emerald-400'
+                                : 'bg-gradient-to-r from-amber-500 to-rose-500'
+                            }`}
+                            style={{ width: `${result.percentage}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1.5 text-center font-medium">
+                          Aproveitamento: <span className="text-amber-300 font-bold">{result.percentage}%</span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-slate-300 text-center">
+                        Esta prova está em modo <b>treino livre</b> (sem gabarito automático cadastrado). Confira no documento de referência ou registre sua sessão abaixo!
+                      </p>
+                    )}
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+                      <button
+                        onClick={logSimuladoToHud}
+                        className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition"
+                      >
+                        💾 Registrar no HUD (+Meta)
+                      </button>
+                      {hudLogStatus && (
+                        <span className="text-[11px] text-emerald-400 font-semibold">{hudLogStatus}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scroll p-3 md:p-4 space-y-2">
+                {selectedExam && Array.from({ length: selectedExam.totalQuestions }).map((_, idx) => {
+                  const userAnswer = answers[idx];
+                  const correctAnswer = selectedExam.gabarito && selectedExam.gabarito[idx];
+                  const hasGabarito = !!correctAnswer;
+
+                  let statusClass = 'border-slate-800 bg-slate-950/60';
+                  if (isSubmitted && hasGabarito) {
+                    if (userAnswer === correctAnswer) statusClass = 'border-emerald-700/60 bg-emerald-950/20';
+                    else if (userAnswer) statusClass = 'border-rose-700/60 bg-rose-950/20';
+                    else statusClass = 'border-amber-700/60 bg-amber-950/20';
+                  } else if (userAnswer) {
+                    statusClass = 'border-amber-700/60 bg-amber-950/20';
+                  }
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`answer-row p-2 sm:p-2.5 rounded-xl border transition-all duration-150 flex items-center justify-between ${statusClass}`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-300 border border-slate-700">
+                          {idx + 1}
+                        </span>
+                        {isSubmitted && hasGabarito && (
+                          userAnswer === correctAnswer ? (
+                            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800">
+                              ✓ Correto
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-rose-400 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800">
+                              Gab: <strong className="text-white underline">{correctAnswer}</strong>
+                            </span>
+                          )
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-1 sm:space-x-1.5">
+                        {['A', 'B', 'C', 'D', 'E'].map(opt => {
+                          const isSelected = userAnswer === opt;
+                          const isCorrect = isSubmitted && correctAnswer === opt;
+                          const isWrong = isSubmitted && isSelected && correctAnswer !== opt;
+
+                          let btnStyle = 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 hover:text-white border-slate-700';
+                          if (isSubmitted) {
+                            if (isCorrect) btnStyle = 'bg-emerald-600 text-white font-black border-emerald-400 ring-2 ring-emerald-400/40';
+                            else if (isWrong) btnStyle = 'bg-rose-600 text-white font-black line-through border-rose-400';
+                            else if (isSelected) btnStyle = 'bg-slate-700 text-slate-300';
+                          } else if (isSelected) {
+                            btnStyle = 'bg-amber-500 text-slate-950 font-black border-amber-300 shadow-md shadow-amber-500/30 scale-105';
+                          }
+
+                          return (
+                            <button
+                              key={opt}
+                              onClick={() => handleSelectOption(idx, opt)}
+                              disabled={isSubmitted}
+                              aria-label={`Questão ${idx + 1}, alternativa ${opt}`}
+                              aria-pressed={isSelected}
+                              className={`answer-option w-9 h-10 sm:w-10 sm:h-10 rounded-lg text-xs font-bold border transition-all duration-100 flex items-center justify-center active:scale-95 ${btnStyle}`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="p-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400 shrink-0">
+                <span>Clique para marcar/desmarcar.</span>
+                {!isSubmitted && totalAnswered > 0 && (
+                  <button
+                    onClick={() => setAnswers({})}
+                    className="text-rose-400 hover:text-rose-300 underline font-medium"
+                  >
+                    Limpar Tudo
+                  </button>
+                )}
+              </div>
+            </dialog>
+
+            {/* TAB 3: Official P3 Formula Sheet + P3 Cheat Sheet */}
+            <div className={`flex-1 min-w-0 flex flex-col bg-slate-900/95 overflow-hidden ${
+              activeTab === 'formulas' ? 'flex' : 'hidden'
+            }`}>
+              <div className="min-h-12 py-2.5 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between px-4 text-xs gap-3 shrink-0">
+                <div className="flex items-center space-x-2">
+                  <span className="font-extrabold text-sm text-indigo-300 flex items-center gap-1.5">
+                    <span>📐</span> Formulário Oficial P3 (UFF)
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 hidden sm:inline">
+                    Magnetismo · Faraday · RL / LC / RLC · CA
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-3 ml-auto sm:ml-0">
+                  <label className="flex items-center space-x-2 cursor-pointer bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-indigo-500/50 transition-all">
+                    <input
+                      type="checkbox"
+                      checked={showExtraSummary}
+                      onChange={(e) => setShowExtraSummary(e.target.checked)}
+                      className="w-4 h-4 rounded text-indigo-500 bg-slate-900 border-slate-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-slate-200">
+                      {showExtraSummary ? '✓ Resumo Teórico P3 Ativo' : 'Mostrar Resumo Teórico / Colinha P3'}
+                    </span>
+                  </label>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setFormulaZoom(prev => Math.max(60, prev - 15))}
+                      className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center font-bold text-xs"
+                    >-</button>
+                    <span className="font-mono text-indigo-400 font-bold text-xs w-10 text-center">{formulaZoom}%</span>
+                    <button
+                      onClick={() => setFormulaZoom(prev => Math.min(200, prev + 15))}
+                      className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center font-bold text-xs"
+                    >+</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scroll p-4 md:p-8 bg-slate-950 flex flex-col items-center">
+                <figure
+                  style={{ width: `${formulaZoom}%`, maxWidth: `${formulaZoom * 8.5}px`, flexShrink: 0 }}
+                  className="transition-all duration-150"
+                >
+                  <figcaption className="text-sm text-slate-300 mb-3">
+                    Formulário oficial incluído na capa das provas de P3 de Física II (UFF).
+                  </figcaption>
+                  <div className="overflow-hidden rounded-lg bg-white shadow-2xl border border-slate-700">
+                    <img
+                      src="/estudos/fisica-2/formulario-fisica-2-p3.png"
+                      alt="Formulário Oficial de Física II P3"
+                      className="w-full h-auto block"
+                    />
+                  </div>
+                  <a
+                    href="/estudos/fisica-2/formulario-fisica-2-p3.png"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 text-sm text-indigo-300 underline hover:text-indigo-200"
+                  >
+                    Abrir formulário em nova aba ↗
+                  </a>
+                </figure>
+
+                {showExtraSummary && (
+                  <div className="w-full max-w-4xl mt-10 p-6 rounded-2xl bg-slate-900 border border-indigo-800/60 shadow-2xl">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl">💡</span>
+                        <h3 className="font-bold text-base text-indigo-300">Resumo Teórico &amp; Dicas de P3 (KaTeX)</h3>
+                      </div>
+                      <button
+                        onClick={() => setShowExtraSummary(false)}
+                        className="text-xs text-slate-400 hover:text-rose-400 underline font-semibold"
+                      >
+                        Ocultar Resumo
+                      </button>
+                    </div>
+                    <div className="text-sm text-slate-200 latex-content">
+                      <div
+                        id="extra-summary-content"
+                        dangerouslySetInnerHTML={{
+                          __html: marked.parse(fullSummaryMarkdown || '# Carregando Resumo P3...')
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

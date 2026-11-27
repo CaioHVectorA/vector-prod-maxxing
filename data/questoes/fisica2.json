@@ -1,37 +1,51 @@
 [
   {
-    "id": "f2_q1",
-    "topico": "MHS & Oscilações Amortecidas",
-    "enunciado": "Um oscilador harmônico simples com massa m = 0.5 kg e mola de constante k = 200 N/m possui amortecimento linear com b = 2 N·s/m. Calcule a frequência angular natural ω0 e determine se o sistema está subamortecido, criticamente amortecido ou superamortecido.",
-    "gabarito": "ω0 = sqrt(k/m) = sqrt(200 / 0.5) = 20 rad/s. γ = b / (2m) = 2 / (2 * 0.5) = 2 s^-1. Como γ (2) < ω0 (20), o sistema está SUBAMORTECIDO com ω' = sqrt(ω0^2 - γ^2) = sqrt(400 - 4) = sqrt(396) ≈ 19.9 rad/s.",
-    "dica": "Compare γ = b/(2m) com ω0 = sqrt(k/m)."
+    "id": "f2_p3_q1",
+    "topico": "P3 · Indução Eletromagnética (Faraday-Lenz)",
+    "enunciado": "Uma espira quadrada de lado L = 0,20 m e resistência R = 4,0 Ω está imersa perpendicularmente em um campo magnético uniforme que cresce linearmente a uma taxa dB/dt = 5,0 T/s (apontando para dentro do papel). Calcule a corrente induzida e o seu sentido.",
+    "gabarito": "Φ_B = B·A com A = 0,20² = 0,04 m². |ε| = A·|dB/dt| = 0,04 × 5,0 = 0,20 V. I = ε/R = 0,20 / 4,0 = 0,05 A (50 mA). Como o fluxo para dentro aumenta, B_ind aponta para fora → sentido ANTI-HORÁRIO.",
+    "dica": "Use |ε| = A·|dB/dt| e aplique a Lei de Lenz com a Regra da Mão Direita."
   },
   {
-    "id": "f2_q2",
-    "topico": "Ondas Sonoras & Efeito Doppler",
-    "enunciado": "Uma ambulância se aproxima de um pedestre parado com velocidade de 34 m/s, emitindo uma sirene de 800 Hz. Considerando a velocidade do som no ar como 340 m/s, qual frequência o pedestre ouve?",
-    "gabarito": "Fonte em aproximação: f' = f * (v / (v - vs)) = 800 * (340 / (340 - 34)) = 800 * (340 / 306) ≈ 888.9 Hz.",
-    "dica": "O observador está parado (vo = 0) e a fonte se aproxima (sinal negativo no denominador)."
+    "id": "f2_p3_q2",
+    "topico": "P3 · FEM de Movimento (Barra Condutora)",
+    "enunciado": "Uma barra condutora de comprimento ℓ = 0,50 m desliza sem atrito a v = 4,0 m/s sobre trilhos paralelos conectados a um resistor R = 2,0 Ω, em um campo magnético perpendicular B = 0,40 T. Qual a fem induzida, a corrente e a potência dissipada no resistor?",
+    "gabarito": "ε = B·ℓ·v = 0,40 × 0,50 × 4,0 = 0,80 V. I = ε/R = 0,80 / 2,0 = 0,40 A. Potência P = I²R = (0,40)² × 2,0 = 0,32 W.",
+    "dica": "ε = Bℓv, I = ε/R e P = ε²/R."
   },
   {
-    "id": "f2_q3",
-    "topico": "Termodinâmica - Ciclo de Carnot",
-    "enunciado": "Uma máquina térmica de Carnot opera entre dois reservatórios térmicos a 600 K (fonte quente) e 300 K (fonte fria). Se ela absorve 1200 J de calor da fonte quente por ciclo, calcule seu rendimento máximo teórico e o trabalho realizado por ciclo.",
-    "gabarito": "η = 1 - (T_fria / T_quente) = 1 - (300 / 600) = 0.50 (50%). Trabalho W = η * Q_quente = 0.50 * 1200 J = 600 J por ciclo.",
-    "dica": "As temperaturas devem estar sempre em Kelvin!"
+    "id": "f2_p3_q3",
+    "topico": "P3 · Circuitos RL (Constante de Tempo & Regime)",
+    "enunciado": "Um circuito RL em série possui fonte ε = 12 V, resistor R = 6,0 Ω e indutor L = 3,0 H. Qual a constante de tempo τ, a corrente imediatamente após fechar a chave (t = 0+) e a corrente no regime estacionário (t → ∞)?",
+    "gabarito": "τ = L/R = 3,0 / 6,0 = 0,50 s. Em t = 0+, o indutor age como chave aberta → I(0+) = 0 A. Em t → ∞, o indutor age como curto-circuito → I(∞) = ε/R = 12 / 6,0 = 2,0 A.",
+    "dica": "Lembre-se: em t = 0+ indutor = chave aberta (I = 0); em t → ∞ indutor = fio (V_L = 0)."
   },
   {
-    "id": "f2_q4",
-    "topico": "Fluidos - Equação de Bernoulli & Continuidade",
-    "enunciado": "Água escoa em um tubo horizontal com velocidade de 2 m/s onde a área da seção reta é 20 cm² e a pressão manométrica é 100 kPa. O tubo se estreita para uma área de 5 cm². Calcule a velocidade da água no estrangulamento e a nova pressão manométrica.",
-    "gabarito": "Continuidade: A1*v1 = A2*v2 => 20*2 = 5*v2 => v2 = 8 m/s. Bernoulli (horizontal): P1 + 0.5*ρ*v1^2 = P2 + 0.5*ρ*v2^2. P2 = 100 kPa + 0.5*1000*(2^2 - 8^2) Pa = 100.000 - 30.000 = 70 kPa.",
-    "dica": "Densidade da água ρ = 1000 kg/m³. Lembre que onde a velocidade aumenta, a pressão estática diminui."
+    "id": "f2_p3_q4",
+    "topico": "P3 · Oscilações Eletromagnéticas (Circuito LC)",
+    "enunciado": "Um circuito LC ideal tem L = 4,0 mH e C = 10 μF. Se a carga máxima no capacitor é Q0 = 20 μC, calcule a frequência angular natural ω0 e a corrente máxima I_max no indutor.",
+    "gabarito": "ω0 = 1 / sqrt(LC) = 1 / sqrt(4×10⁻³ × 10×10⁻⁶) = 1 / sqrt(4×10⁻⁸) = 1 / (2×10⁻⁴) = 5000 rad/s. I_max = ω0·Q0 = 5000 × 20×10⁻⁶ = 0,10 A (100 mA).",
+    "dica": "Use ω0 = 1/√(LC) e I_max = ω0·Q0 (ou conservação de energia Q0²/(2C) = L·I_max²/2)."
   },
   {
-    "id": "f2_q5",
-    "topico": "Primeira Lei da Termodinâmica",
-    "enunciado": "Dois moles de um gás ideal monoatômico sofrem uma expansão isobárica à pressão de 100 kPa, variando seu volume de 0.02 m³ para 0.05 m³. Calcule o trabalho W realizado pelo gás, a variação de energia interna ΔU e o calor Q absorvido.",
-    "gabarito": "Trabalho W = P * ΔV = 100.000 * 0.03 = 3000 J. Para gás monoatômico: Cv = (3/2)R, Cp = (5/2)R. ΔU = (3/2) * P * ΔV = 1.5 * 3000 = 4500 J. Primeira Lei: Q = ΔU + W = 4500 + 3000 = 7500 J.",
-    "dica": "Para processo isobárico de gás monoatômico: W = PΔV, ΔU = 1.5 PΔV e Q = 2.5 PΔV."
+    "id": "f2_p3_q5",
+    "topico": "P3 · Circuito RLC em CA & Ressonância",
+    "enunciado": "Um circuito RLC em série tem R = 30 Ω, X_L = 80 Ω e X_C = 40 Ω, ligado a uma fonte CA de ε_rms = 100 V. Determine a impedância Z, a corrente eficaz I_rms e a potência média dissipada.",
+    "gabarito": "Z = sqrt(R² + (X_L - X_C)²) = sqrt(30² + 40²) = 50 Ω. I_rms = ε_rms / Z = 100 / 50 = 2,0 A. P_med = I_rms² · R = 2,0² × 30 = 120 W (ou ε_rms·I_rms·cosφ com cosφ = R/Z = 0,6).",
+    "dica": "Triângulo 3-4-5! Z = √(R² + (X_L - X_C)²) e somente o resistor dissipa potência média."
+  },
+  {
+    "id": "f2_p3_q6",
+    "topico": "P3 · Corrente de Deslocamento (Ampère-Maxwell)",
+    "enunciado": "Um capacitor de placas circulares de raio R = 10 cm está sendo carregado por uma corrente constante I = 4,0 A. Qual o módulo do campo magnético B entre as placas a uma distância r = 5,0 cm do eixo central?",
+    "gabarito": "Entre as placas, i_d,total = I = 4,0 A. Para r < R: i_d,env = I·(r/R)² = 4,0 × (0,5)² = 1,0 A. Pela Lei de Ampère-Maxwell: B = μ0·i_d,env / (2πr) = (4π×10⁻⁷ × 1,0) / (2π × 0,05) = 4,0×10⁻⁶ T (4,0 μT).",
+    "dica": "Dentro do capacitor, o campo magnético cresce linearmente com r: B(r) = μ0·I·r / (2πR²)."
+  },
+  {
+    "id": "f2_p3_q7",
+    "topico": "P3 · Autoindutância & FEM Autoinduzida",
+    "enunciado": "Um indutor de L = 12 H conduz uma corrente que decresce uniformemente, induzindo uma fem de 60 V que se opõe à redução da corrente. Qual é a taxa de variação dI/dt?",
+    "gabarito": "ε = -L·(dI/dt) ⇒ 60 = -12·(dI/dt) ⇒ dI/dt = -5,0 A/s.",
+    "dica": "Se a corrente está diminuindo, dI/dt é negativo."
   }
 ]

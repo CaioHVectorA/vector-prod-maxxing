@@ -12,6 +12,10 @@ from core.osinfo import IS_MAC, IS_WINDOWS
 
 REPO_DIR = str(Path(__file__).resolve().parent.parent)
 WEB_DIR = os.path.join(REPO_DIR, "web")
+SIMULADOR_FISICA_DIR = os.path.join(WEB_DIR, "simulador_fisica")
+ESTUDOS_DIR = os.path.join(REPO_DIR, "estudos")
+FISICA_DIR = os.path.join(ESTUDOS_DIR, "fisica-2")
+FISICA_P3_DIR = os.path.join(FISICA_DIR, "P3")
 FIRMWARES_DIR = os.path.join(REPO_DIR, "firmwares")
 
 DATA_DIR = os.path.join(REPO_DIR, "data")
@@ -39,7 +43,9 @@ FOCUS_STATE_FILE = os.path.join(LOCAL_CONFIG_DIR, "focus_state.json")
 PAC_FILE = os.path.join(LOCAL_CONFIG_DIR, "focus.pac")
 LOG_DIR = os.path.join(LOCAL_CONFIG_DIR, "logs")
 
-CALC_DIR = os.path.join(str(Path.home()), "Downloads", "calc")
+_DOWNLOADS_CALC = os.path.join(str(Path.home()), "Downloads", "calc")
+_REPO_CALC = os.path.join(ESTUDOS_DIR, "calculo-3")
+CALC_DIR = _REPO_CALC if os.path.isdir(_REPO_CALC) else _DOWNLOADS_CALC
 
 
 def ensure_dirs() -> None:
