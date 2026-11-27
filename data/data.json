@@ -260,7 +260,7 @@
           "prioridade": "alta",
           "cor": "#38bdf8",
           "descricao": "Oscilações, Ondas, Fluidos e Termodinâmica. Falta apenas P3 para fechar o semestre.",
-          "materiais_dir": "estudos/fisica2",
+          "materiais_dir": "estudos/fisica-2",
           "questoes_file": "fisica2.json",
           "metas": {
             "questoes_semana": 10,
