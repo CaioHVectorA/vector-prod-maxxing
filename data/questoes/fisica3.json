@@ -1,0 +1,22 @@
+[
+  {
+    "id": "f3_q1",
+    "topico": "Campo Elétrico e Lei de Gauss",
+    "dificuldade": "media",
+    "enunciado": "Uma esfera isolante maciça de raio $R$ possui densidade volumétrica de carga uniforme $\\rho$. Utilize a Lei de Gauss para determinar o módulo do campo elétrico $E(r)$ para (a) $r < R$ e (b) $r > R$.",
+    "dica": "Escolha uma superfície gaussiana esférica concêntrica de raio $r$ e calcule a carga interna $q_{int} = \\rho \\cdot \\frac{4}{3}\\pi r^3$ quando $r < R$.",
+    "gabarito": "Pela Lei de Gauss: $\\oint \\vec{E}\\cdot d\\vec{A} = E(4\\pi r^2) = \\frac{q_{int}}{\\varepsilon_0}$.\n(a) Para $r < R$: $q_{int} = \\rho \\frac{4}{3}\\pi r^3 \\Rightarrow E(r) = \\frac{\\rho r}{3\\varepsilon_0}$.\n(b) Para $r > R$: $q_{int} = Q = \\rho \\frac{4}{3}\\pi R^3 \\Rightarrow E(r) = \\frac{Q}{4\\pi\\varepsilon_0 r^2} = \\frac{\\rho R^3}{3\\varepsilon_0 r^2}$.",
+    "status": "pendente",
+    "attempts": 0
+  },
+  {
+    "id": "f3_q2",
+    "topico": "Indução Eletromagnética e Lei de Faraday",
+    "dificuldade": "media",
+    "enunciado": "Uma espira circular de raio $r = 10\\,\\text{cm}$ e resistência $R = 2\\,\\Omega$ está imersa em um campo magnético perpendicular ao plano da espira que varia segundo $B(t) = 0{,}5\\,t^2 + 0{,}2\\,t$ (em Tesla). Calcule a força eletromotriz induzida e a corrente no instante $t = 2\\,\\text{s}$.",
+    "dica": "Calcule o fluxo magnético $\\Phi_B(t) = B(t) \\cdot \\pi r^2$ e aplique $|\\mathcal{E}| = \\left|\\frac{d\\Phi_B}{dt}\\right|$.",
+    "gabarito": "$\\Phi_B(t) = \\pi (0{,}1)^2 (0{,}5t^2 + 0{,}2t) = 0{,}01\\pi (0{,}5t^2 + 0{,}2t)$.\n$\\frac{d\\Phi_B}{dt} = 0{,}01\\pi (t + 0{,}2)$.\nEm $t = 2\\,\\text{s}$: $|\\mathcal{E}| = 0{,}01\\pi (2{,}2) \\approx 0{,}0691\\,\\text{V}$.\nCorrente: $i = \\frac{|\\mathcal{E}|}{R} = \\frac{0{,}0691}{2} \\approx 34{,}6\\,\\text{mA}$.",
+    "status": "pendente",
+    "attempts": 0
+  }
+]

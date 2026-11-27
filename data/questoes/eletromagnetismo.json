@@ -1,0 +1,12 @@
+[
+  {
+    "id": "em_q1",
+    "topico": "Cálculo Vetorial e Coordenadas Cilíndricas/Esféricas",
+    "dificuldade": "media",
+    "enunciado": "Dado o campo vetorial $\\vec{A} = \\rho\\cos\\phi\\,\\hat{a}_\\rho + z\\,\\hat{a}_z$ em coordenadas cilíndricas, calcule o divergente $\\nabla \\cdot \\vec{A}$.",
+    "dica": "Em coordenadas cilíndricas: $\\nabla \\cdot \\vec{A} = \\frac{1}{\\rho}\\frac{\\partial}{\\partial\\rho}(\\rho A_\\rho) + \\frac{1}{\\rho}\\frac{\\partial A_\\phi}{\\partial\\phi} + \\frac{\\partial A_z}{\\partial z}$.",
+    "gabarito": "$\\frac{1}{\\rho}\\frac{\\partial}{\\partial\\rho}(\\rho^2 \\cos\\phi) + 0 + \\frac{\\partial z}{\\partial z} = \\frac{2\\rho\\cos\\phi}{\\rho} + 1 = 2\\cos\\phi + 1$.",
+    "status": "pendente",
+    "attempts": 0
+  }
+]

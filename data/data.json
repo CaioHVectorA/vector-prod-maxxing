@@ -1,18 +1,316 @@
 {
+  "schema_version": 2,
+  "active_semester": "2027.1",
+  "daily_goals": {
+    "questoes": 5,
+    "leitura_min": 45,
+    "foco_min": 90
+  },
+  "agy_config": {
+    "cli_command": "antigravity",
+    "terminal_command": "x-terminal-emulator",
+    "develop_dirs": [
+      "~/develop"
+    ],
+    "auto_git_sync": true
+  },
   "settings": {
     "solid_background": false,
-    "window_width": 450,
-    "window_height": 760,
-    "is_pinned": true,
+    "window_width": 1280,
+    "window_height": 820,
+    "is_pinned": false,
     "is_collapsed": false,
     "active_tab": 0,
     "focus_active": false
   },
+  "semesters": {
+    "2027.1": {
+      "id": "2027.1",
+      "nome": "2027.1 — Preparação & Semestre Principal",
+      "status": "ativo",
+      "inicio": "2027-03-01",
+      "fim": "2027-07-15",
+      "disciplinas": [
+        {
+          "id": "fisica3",
+          "nome": "Física III",
+          "codigo": "FIS03",
+          "categoria": "teorica",
+          "prioridade": "alta",
+          "cor": "#38bdf8",
+          "descricao": "Eletrostática, Lei de Gauss, Potencial Elétrico, Magnetostática, Lei de Faraday e Indutância.",
+          "materiais_dir": "estudos/fisica3",
+          "questoes_file": "fisica3.json",
+          "metas": {
+            "questoes_semana": 15,
+            "leitura_min_semana": 120,
+            "sessoes_semana": 4
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p3", "nome": "P3", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "f3_t1", "titulo": "Carga Elétrica e Lei de Coulomb", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "f3_t2", "titulo": "Campo Elétrico e Lei de Gauss", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "f3_t3", "titulo": "Potencial Elétrico e Capacitância", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "f3_t4", "titulo": "Corrente, Resistência e Circuitos CC", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "f3_t5", "titulo": "Campo Magnético, Biot-Savart e Ampère", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "f3_t6", "titulo": "Indução Eletromagnética e Lei de Faraday", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "fisica_exp3",
+          "nome": "Física Experimental III",
+          "codigo": "FISEXP03",
+          "categoria": "laboratorio",
+          "prioridade": "media",
+          "cor": "#2dd4bf",
+          "descricao": "Experimentos de eletricidade, magnetismo, instrumentação, propagação de incertezas e relatórios.",
+          "materiais_dir": "estudos/fisica_exp3",
+          "questoes_file": "fisica_exp3.json",
+          "metas": {
+            "questoes_semana": 5,
+            "leitura_min_semana": 60,
+            "sessoes_semana": 2
+          },
+          "avaliacoes": [
+            { "id": "rel1", "nome": "Relatórios Bloco 1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "rel2", "nome": "Relatórios Bloco 2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "prova_lab", "nome": "Prova Prática", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "fe3_t1", "titulo": "Multímetro, Osciloscópio e Incertezas", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "fe3_t2", "titulo": "Mapeamento de Equipoteciais e Campo Elétrico", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "fe3_t3", "titulo": "Carga e Descarga de Capacitores (RC)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "fe3_t4", "titulo": "Campo Magnético em Bobinas e Indução", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "sinais_sistemas",
+          "nome": "Sinais e Sistemas",
+          "codigo": "SIS01",
+          "categoria": "engenharia",
+          "prioridade": "alta",
+          "cor": "#a78bfa",
+          "descricao": "Sistemas LIT, Convolução, Série e Transformada de Fourier, Transformada de Laplace, Amostragem e Transformada Z.",
+          "materiais_dir": "estudos/sinais_sistemas",
+          "questoes_file": "sinais_sistemas.json",
+          "metas": {
+            "questoes_semana": 15,
+            "leitura_min_semana": 120,
+            "sessoes_semana": 4
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "vs", "nome": "VS", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "ss_t1", "titulo": "Sinais Contínuos e Discretos & Propriedades de Sistemas", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ss_t2", "titulo": "Sistemas LIT e Integral/Soma de Convolução", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ss_t3", "titulo": "Série de Fourier (Contínua e Discreta)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ss_t4", "titulo": "Transformada de Fourier e Resposta em Frequência", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ss_t5", "titulo": "Transformada de Laplace e Funções de Transferência", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ss_t6", "titulo": "Amostragem (Nyquist) e Transformada Z", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "eletromagnetismo",
+          "nome": "Eletromagnetismo",
+          "codigo": "ELETROMAG",
+          "categoria": "teorica",
+          "prioridade": "alta",
+          "cor": "#f472b6",
+          "descricao": "Análise Vetorial (Grad, Div, Rot), Eletrostática em Meios Materiais, Magnetostática, Equações de Maxwell e Ondas Planas.",
+          "materiais_dir": "estudos/eletromagnetismo",
+          "questoes_file": "eletromagnetismo.json",
+          "metas": {
+            "questoes_semana": 15,
+            "leitura_min_semana": 150,
+            "sessoes_semana": 4
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "vs", "nome": "VS", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "em_t1", "titulo": "Cálculo Vetorial e Coordenadas Cilíndricas/Esféricas", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "em_t2", "titulo": "Eletrostática no Vácuo e em Dielétricos (D, P, Condições de Contorno)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "em_t3", "titulo": "Equações de Poisson e Laplace & Método das Imagens", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "em_t4", "titulo": "Magnetostática, Potencial Vetor A e Materiais Magnéticos (H, M)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "em_t5", "titulo": "Equações de Maxwell e Corrente de Deslocamento", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "em_t6", "titulo": "Propagação de Ondas Eletromagnéticas e Vetor de Poynting", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "circuitos_ca",
+          "nome": "Circuitos de Corrente Alternada",
+          "codigo": "CIRC-CA",
+          "categoria": "engenharia",
+          "prioridade": "alta",
+          "cor": "#fbbf24",
+          "descricao": "Senoides e Fasores, Impedância e Admitância, Análise Nodal/Malhas em CA, Potência Complexa, Fator de Potência, Ressonância e Circuitos Trifásicos.",
+          "materiais_dir": "estudos/circuitos_ca",
+          "questoes_file": "circuitos_ca.json",
+          "metas": {
+            "questoes_semana": 15,
+            "leitura_min_semana": 120,
+            "sessoes_semana": 4
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "vs", "nome": "VS", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "ca_t1", "titulo": "Senoides, Fasores e Impedância Complexa", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ca_t2", "titulo": "Análise Nodal, Malhas, Thévenin e Norton em CA", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ca_t3", "titulo": "Potência Ativa, Reativa, Aparente e Correção de Fator de Potência", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ca_t4", "titulo": "Circuitos Trifásicos Equilibrados (Y-Y, Y-Δ, Δ-Δ)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ca_t5", "titulo": "Resposta em Frequência, Diagramas de Bode e Ressonância RLC", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "ca_t6", "titulo": "Circuitos Magneticamente Acoplados e Transformadores", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "resmat",
+          "nome": "Resistência dos Materiais",
+          "codigo": "RESMAT",
+          "categoria": "engenharia",
+          "prioridade": "alta",
+          "cor": "#fb923c",
+          "descricao": "Tensão e Deformação Axial, Torção em Eixos, Diagramas de Esforço Cortante e Momento Fletor, Flexão, Círculo de Mohr e Flambagem.",
+          "materiais_dir": "estudos/resmat",
+          "questoes_file": "resmat.json",
+          "metas": {
+            "questoes_semana": 12,
+            "leitura_min_semana": 100,
+            "sessoes_semana": 3
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": null, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": null, "data": null },
+            { "id": "vs", "nome": "VS", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "rm_t1", "titulo": "Conceito de Tensão, Deformação e Lei de Hooke", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "rm_t2", "titulo": "Carregamento Axial e Estruturas Hiperestáticas", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "rm_t3", "titulo": "Torção em Eixos Circulares", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "rm_t4", "titulo": "Diagramas V e M e Tensões de Flexão em Vigas", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "rm_t5", "titulo": "Cisalhamento Transversal e Transformação de Tensões (Mohr)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "rm_t6", "titulo": "Deflexão de Vigas e Flambagem de Colunas (Euler)", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        },
+        {
+          "id": "lab_ca",
+          "nome": "Laboratório de Corrente Alternada",
+          "codigo": "LAB-CA",
+          "categoria": "laboratorio",
+          "prioridade": "media",
+          "cor": "#34d399",
+          "descricao": "Práticas de bancada com gerador de funções, osciloscópio, medição de defasagem, circuitos RLC, filtros e potência CA.",
+          "materiais_dir": "estudos/lab_ca",
+          "questoes_file": "lab_ca.json",
+          "metas": {
+            "questoes_semana": 4,
+            "leitura_min_semana": 60,
+            "sessoes_semana": 2
+          },
+          "avaliacoes": [
+            { "id": "praticas", "nome": "Práticas & Relatórios", "peso": 1.0, "nota": null, "data": null },
+            { "id": "prova_pratica", "nome": "Avaliação de Bancada", "peso": 1.0, "nota": null, "data": null }
+          ],
+          "topicos": [
+            { "id": "lca_t1", "titulo": "Osciloscópio, Gerador de Funções e Medição de Fase", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "lca_t2", "titulo": "Impedância Experimental de Circuitos RL, RC e RLC", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "lca_t3", "titulo": "Ressonância Série/Paralelo e Filtros Passa-Baixa/Alta", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 },
+            { "id": "lca_t4", "titulo": "Medição de Potência Ativa, Reativa e Correção de FP", "status": "nao_iniciado", "leitura_concluida": false, "questoes_resolvidas": 0 }
+          ],
+          "ultimo_estudo": null,
+          "ultima_leitura": null
+        }
+      ]
+    },
+    "2026.2": {
+      "id": "2026.2",
+      "nome": "2026.2 — Fechamento (Falta só P3 Física II)",
+      "status": "encerrando",
+      "inicio": "2026-08-10",
+      "fim": "2026-12-15",
+      "disciplinas": [
+        {
+          "id": "fisica2",
+          "nome": "Física II",
+          "codigo": "FIS02",
+          "categoria": "teorica",
+          "prioridade": "alta",
+          "cor": "#38bdf8",
+          "descricao": "Oscilações, Ondas, Fluidos e Termodinâmica. Falta apenas P3 para fechar o semestre.",
+          "materiais_dir": "estudos/fisica2",
+          "questoes_file": "fisica2.json",
+          "metas": {
+            "questoes_semana": 10,
+            "leitura_min_semana": 60,
+            "sessoes_semana": 3
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 1.0, "nota": 6.7, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 1.0, "nota": 8.7, "data": null },
+            { "id": "p3", "nome": "P3", "peso": 1.0, "nota": null, "data": "2026-12-05" }
+          ],
+          "topicos": [
+            { "id": "f2_t1", "titulo": "Revisão Final para P3", "status": "praticando", "leitura_concluida": true, "questoes_resolvidas": 5 }
+          ],
+          "ultimo_estudo": "2026-11-01T18:45:00",
+          "ultima_leitura": null
+        },
+        {
+          "id": "calculo3",
+          "nome": "Cálculo III",
+          "codigo": "CALC03",
+          "categoria": "teorica",
+          "prioridade": "baixa",
+          "cor": "#818cf8",
+          "descricao": "Cálculo Vetorial, Integrais Múltiplas, Green, Stokes e Gauss.",
+          "materiais_dir": "estudos/calculo-3",
+          "questoes_file": "calculo3.json",
+          "metas": {
+            "questoes_semana": 5,
+            "leitura_min_semana": 30,
+            "sessoes_semana": 2
+          },
+          "avaliacoes": [
+            { "id": "p1", "nome": "P1", "peso": 2.0, "nota": 7.7, "data": null },
+            { "id": "p2", "nome": "P2", "peso": 3.0, "nota": null, "data": "2026-11-28" }
+          ],
+          "topicos": [],
+          "ultimo_estudo": "2026-11-03T00:53:05",
+          "ultima_leitura": null
+        }
+      ]
+    }
+  },
   "estudos": {
-    "semestre": "2026.2",
+    "semestre": "2027.1",
     "meta_questoes_diarias": 5,
-    "questoes_feitas_hoje": 4,
-    "streak_dias": 2,
+    "meta_leitura_diaria_min": 45,
+    "questoes_feitas_hoje": 0,
+    "leitura_min_hoje": 0,
+    "streak_dias": 0,
     "disciplinas": [
       {
         "id": "calculo3",
@@ -43,55 +341,15 @@
         "ultimo_estudo": "2026-11-01T18:45:00",
         "simulador_url": "http://localhost:8080",
         "questoes_file": "fisica2.json"
-      },
-      {
-        "id": "met_numericos",
-        "nome": "Métodos Numéricos",
-        "prioridade": "media",
-        "p1": null,
-        "p2": null,
-        "vs": null,
-        "data_p1": "2026-11-24",
-        "ultimo_estudo": "2026-10-30T10:00:00"
-      },
-      {
-        "id": "sis_computacao",
-        "nome": "Sistemas de Computação",
-        "prioridade": "media",
-        "p1": null,
-        "p2": null,
-        "vs": null,
-        "data_p1": "2026-11-26",
-        "ultimo_estudo": "2026-10-29T14:00:00"
-      },
-      {
-        "id": "fisica_exp2",
-        "nome": "Física Experimental II",
-        "prioridade": "media",
-        "p1": null,
-        "p2": null,
-        "vs": null,
-        "data_p1": "2026-12-01",
-        "ultimo_estudo": "2026-10-28T16:00:00"
       }
     ],
-    "dia_ref": "2026-11-04",
-    "streak_contado_hoje": true
+    "dia_ref": "2026-11-26",
+    "streak_contado_hoje": false
   },
   "referencias": [
     {
-      "title": "Simulador de Provas de Física II (UFF)",
-      "url": "http://localhost:8080",
-      "category": "estudos"
-    },
-    {
       "title": "Portal do Aluno - IdUFF",
       "url": "https://app.uff.br/iduff/",
-      "category": "estudos"
-    },
-    {
-      "title": "Resumo P2 Física 2 (Colinha Definitiva)",
-      "url": "file:///home/usuario/develop/Pfisicas/RESUMO_P2_COLINHA_DEFINITIVA.md",
       "category": "estudos"
     },
     {

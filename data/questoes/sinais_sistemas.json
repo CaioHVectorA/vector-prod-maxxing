@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ss_q1",
+    "topico": "Sistemas LIT e Integral/Soma de Convolução",
+    "dificuldade": "media",
+    "enunciado": "Um sistema LIT contínuo possui resposta ao impulso $h(t) = e^{-2t}u(t)$. Determine a saída $y(t)$ quando a entrada é o degrau unitário $x(t) = u(t)$.",
+    "dica": "Use a integral de convolução $y(t) = \\int_{-\\infty}^{\\infty} x(\\tau)h(t-\\tau)\\,d\\tau$ ajustando os limites para onde ambos os degraus são não nulos.",
+    "gabarito": "Para $t \\ge 0$: $y(t) = \\int_0^t e^{-2(t-\\tau)}\\,d\\tau = e^{-2t}\\left[\\frac{e^{2\\tau}}{2}\\right]_0^t = \\frac{1 - e^{-2t}}{2}u(t)$.",
+    "status": "pendente",
+    "attempts": 0
+  },
+  {
+    "id": "ss_q2",
+    "topico": "Transformada de Laplace e Funções de Transferência",
+    "dificuldade": "facil",
+    "enunciado": "Determine a Transformada de Laplace e a Região de Convergência (ROC) de $x(t) = e^{-3t}u(t) + 2e^{-5t}u(t)$.",
+    "dica": "A ROC da soma de sinais causais é a interseção das ROCs individuais ($\\text{Re}\\{s\\} > \\max(\\sigma_i)$).",
+    "gabarito": "$X(s) = \\frac{1}{s+3} + \\frac{2}{s+5} = \\frac{3s + 11}{(s+3)(s+5)}$, com $\\text{ROC}: \\text{Re}\\{s\\} > -3$.",
+    "status": "pendente",
+    "attempts": 0
+  }
+]

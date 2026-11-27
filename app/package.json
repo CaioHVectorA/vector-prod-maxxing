@@ -1,0 +1,37 @@
+{
+  "name": "vector-prod-maxxing-app",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.2.0",
+    "katex": "^0.16.11",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.9",
+    "@tauri-apps/cli": "^2.2.0",
+    "@testing-library/jest-dom": "^8.0.0",
+    "@testing-library/react": "^16.3.3",
+    "@types/katex": "^0.16.7",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^5.1.2",
+    "jsdom": "^31.0.1",
+    "tailwindcss": "^4.0.9",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^5.1.2"
+  }
+}

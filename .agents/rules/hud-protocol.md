@@ -1,19 +1,22 @@
-# Vector-Prod-Maxxing — Antigravity 2.0 Bidirectional HUD Protocol
+# Vector-Prod-Maxxing v2 — Protocolo Antigravity ↔ App Tauri (Linux)
 
-Whenever the user chats with you in Antigravity 2.0 about college studies (Cálculo III, Física II, Métodos Numéricos, Sistemas de Computação, Física Experimental II), creative writing (UVC / Red Right Hand), or AI training runs across environments, keep the portable `data/` folder of this repository updated in real time.
+Sempre que o usuário conversar no Antigravity sobre estudos (2027.1: `fisica3`, `fisica_exp3`, `sinais_sistemas`, `eletromagnetismo`, `circuitos_ca`, `resmat`, `lab_ca`; ou 2026.2: `fisica2`), enviar materiais de estudo, pedir listas de exercícios ou trabalhar em projetos de código/robótica (`sumo-app`, `rl-robot`, `vss-ironcup-rl`, `haxball-rl`), mantenha `data/` e `estudos/` atualizados em tempo real. O app Tauri observa `data/` e `estudos/` via `notify` e atualiza a tela automaticamente.
 
-## Quick Commands (`hud_cli.py`)
+## Comandos Rápidos (`python3 hud_cli.py`)
 
-Use `python3 hud_cli.py` (or `python hud_cli.py` on Windows) from the root of `vector-prod-maxxing`:
-
-- **Log Study / Solved Questions**:
-  `python3 hud_cli.py log-study --subject <calculo3|fisica2|met_numericos|sis_computacao|fisica_exp2> --questions <N> --topic "<Topic>"`
-- **Update Exam Grade or Date**:
-  `python3 hud_cli.py set-exam --subject <id> --exam <p1|p2|p3|vs|testes> --grade <float> --date <YYYY-MM-DD>`
-- **Log Writing Session**:
-  `python3 hud_cli.py log-writing --words <N> --chapter "<Chapter>"`
-- **Register AI Training on Current Environment/Node**:
-  - Start: `python3 hud_cli.py ai-train --start --project "<Name>" --info "<Epoch/Loss/Info>"`
-  - Stop: `python3 hud_cli.py ai-train --stop --project "<Name>" --info "<Result>"`
-- **Force Git Auto-Sync**:
-  `python3 hud_cli.py sync`
+- **Ver consistência e matérias negligenciadas**:
+  `python3 hud_cli.py stats`
+- **Registrar Estudo (Exercícios e/ou Leitura)**:
+  `python3 hud_cli.py log-study --subject <id> --questions <N> --reading-min <MIN> --pages <P> --topic "<Tópico>"`
+- **Importar Lista de Questões Gerada por IA (com LaTeX `$ ... $`)**:
+  `python3 hud_cli.py add-questions --subject <id> --file <lista.json>` (ou via `stdin`)
+  Formato esperado de cada item:
+  `{"id": "f3_l2_q1", "topico": "...", "dificuldade": "facil|media|dificil", "enunciado": "...", "dica": "...", "gabarito": "..."}`
+- **Atualizar Tópico da Ementa**:
+  `python3 hud_cli.py update-topic --subject <id> --topic "<título ou id>" --status <nao_iniciado|lendo|praticando|dominado> --reading-done`
+- **Atualizar Nota/Data de Prova**:
+  `python3 hud_cli.py set-exam --subject <id> --exam <p1|p2|p3|vs|rel1> --grade <float> --date <YYYY-MM-DD>`
+- **Registrar Sessão de Projeto / Robótica**:
+  `python3 hud_cli.py log-project --project <id> --category <code|robotics|hardware> --duration <MIN> --summary "<resumo>" --next-action "<próximo passo>"`
+- **Materiais de Estudo**:
+  Salvar PDFs, resumos `.md` e listas diretamente em `estudos/<subject_id>/` — o app Tauri detecta e exibe automaticamente.

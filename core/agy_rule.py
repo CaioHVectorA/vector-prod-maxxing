@@ -16,27 +16,32 @@ RULE_PATH = Path.home() / ".gemini" / "config" / "rules" / "vector_hud.md"
 def render_rule() -> str:
     cli = os.path.join(paths.REPO_DIR, "hud_cli.py")
     run = f'"{python_executable()}" "{cli}"'
-    return f"""# Vector-Prod-Maxxing — protocolo HUD ↔ Antigravity
+    return f"""# Vector-Prod-Maxxing v2 — Protocolo Antigravity ↔ App Tauri (Linux)
 
 Host `{HOSTNAME}` ({OS_LABEL}).
 
 - Repositório: `{paths.REPO_DIR}`
 - Dados: `{paths.DATA_FILE}` e `{paths.EVENTS_FILE}`
+- Materiais: `{os.path.join(paths.REPO_DIR, "estudos")}/<subject_id>/`
 - CLI: `{cli}`
 
-## Regras (aplicar sem o usuário pedir)
+## Matérias Ativas (2027.1)
+`fisica3`, `fisica_exp3`, `sinais_sistemas`, `eletromagnetismo`, `circuitos_ca`, `resmat`, `lab_ca` (fechamento 2026.2: `fisica2`).
 
-1. **Estudos (UFF)** — ao resolver questões/estudar uma matéria:
-   `{run} log-study --subject <calculo3|fisica2|met_numericos|sis_computacao|fisica_exp2> --questions <N> --topic "<tópico>"`
-   Notas/datas de prova:
-   `{run} set-exam --subject <id> --exam <p1|p2|p3|vs|testes> --grade <nota> --date <YYYY-MM-DD>`
-2. **Escrita (UVC)** — ao escrever/editar capítulos:
-   `{run} log-writing --words <N> --chapter "<nome>"`
-3. **Treino de IA** — ao iniciar/encerrar treinos:
-   `{run} ai-train --start --project "<nome>" --info "<detalhes>"`
-   `{run} ai-train --stop --info "<resumo>"`
-4. O HUD observa os arquivos de dados e atualiza em ~200 ms. O sync com o GitHub é
-   automático e em lote; para forçar: `{run} sync`
+## Regras (aplicar automaticamente)
+
+1. **Ver métricas e matérias negligenciadas**:
+   `{run} stats`
+2. **Estudos (Leitura + Exercícios)**:
+   `{run} log-study --subject <id> --reading-min <MIN> --pages <P> --questions <N> --topic "<tópico>"`
+3. **Importar listas de questões geradas por IA (LaTeX `$...$`)**:
+   `{run} add-questions --subject <id> --file <lista.json>`
+4. **Atualizar tópico da ementa / notas**:
+   `{run} update-topic --subject <id> --topic "<título>" --status <nao_iniciado|lendo|praticando|dominado> --reading-done`
+   `{run} set-exam --subject <id> --exam <p1|p2|p3|vs|rel1> --grade <nota> --date <YYYY-MM-DD>`
+5. **Projetos de Código & Robótica**:
+   `{run} log-project --project <id> --category <code|robotics|hardware> --duration <MIN> --summary "<resumo>" --next-action "<próximo passo>"`
+6. O app Tauri observa `data/` e `estudos/` em tempo real (~250 ms). Para sincronizar com o GitHub: `{run} sync`
 """
 
 

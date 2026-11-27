@@ -1,0 +1,12 @@
+[
+  {
+    "id": "rm_q1",
+    "topico": "Conceito de Tensão, Deformação e Lei de Hooke",
+    "dificuldade": "facil",
+    "enunciado": "Uma barra cilíndrica de aço ($E = 200\\,\\text{GPa}$) de comprimento $L = 2\\,\\text{m}$ e diâmetro $d = 20\\,\\text{mm}$ sofre uma tração axial de $P = 60\\,\\text{kN}$. Calcule a tensão normal $\\sigma$ e o alongamento $\\delta$.",
+    "dica": "Use $\\sigma = \\frac{P}{A}$ com $A = \\frac{\\pi d^2}{4}$, e $\\delta = \\frac{PL}{AE}$.",
+    "gabarito": "$A = \\frac{\\pi (0{,}02)^2}{4} \\approx 3{,}1416 \\times 10^{-4}\\,\\text{m}^2$.\n$\\sigma = \\frac{60\\times 10^3}{3{,}1416\\times 10^{-4}} \\approx 190{,}99\\,\\text{MPa}$.\n$\\delta = \\frac{\\sigma L}{E} = \\frac{190{,}99\\times 10^6 \\times 2}{200\\times 10^9} \\approx 1{,}91\\,\\text{mm}$.",
+    "status": "pendente",
+    "attempts": 0
+  }
+]

@@ -11,3 +11,12 @@ venv/
 firmwares/**/build/
 local_ui.json
 data/nodes/
+app/node_modules/
+app/dist/
+app/coverage/
+app/src-tauri/target/
+!app/src-tauri/icons/icon.png
+.coverage
+htmlcov/
+.pytest_cache/
+

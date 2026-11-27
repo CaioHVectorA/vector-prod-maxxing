@@ -1,0 +1,12 @@
+[
+  {
+    "id": "ca_q1",
+    "topico": "Senoides, Fasores e Impedância Complexa",
+    "dificuldade": "facil",
+    "enunciado": "Um circuito série $RLC$ com $R = 10\\,\\Omega$, $L = 20\\,\\text{mH}$ e $C = 100\\,\\mu\\text{F}$ é alimentado por $v(t) = 100\\cos(500t)\\,\\text{V}$. Calcule a impedância equivalente $Z$ e o fasor da corrente $\\mathbf{I}$.",
+    "dica": "Use $\\omega = 500\\,\\text{rad/s}$, $Z_L = j\\omega L$ e $Z_C = \\frac{1}{j\\omega C} = -j\\frac{1}{\\omega C}$.",
+    "gabarito": "$Z_L = j(500)(0{,}02) = j10\\,\\Omega$. $Z_C = -j\\frac{1}{500 \\times 100\\times 10^{-6}} = -j20\\,\\Omega$.\n$Z = 10 + j10 - j20 = 10 - j10 = 14{,}14\\angle -45^\\circ\\,\\Omega$.\n$\\mathbf{I} = \\frac{100\\angle 0^\\circ}{14{,}14\\angle -45^\\circ} \\approx 7{,}07\\angle 45^\\circ\\,\\text{A}$.",
+    "status": "pendente",
+    "attempts": 0
+  }
+]

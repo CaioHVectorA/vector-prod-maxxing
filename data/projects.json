@@ -1,0 +1,62 @@
+[
+  {
+    "id": "vector-prod-maxxing",
+    "nome": "Vector Prod Maxxing",
+    "categoria": "code",
+    "status": "ativo",
+    "prioridade": "alta",
+    "stack": ["Rust", "Tauri", "React", "TypeScript", "Python"],
+    "repo_name": "vector-prod-maxxing",
+    "descricao": "Cockpit pessoal Linux em Tauri integrado ao Antigravity para estudos, consistência, código e robótica.",
+    "next_action": "Validar fluxo diário de leitura + listas IA para 2027.1",
+    "pinned": true
+  },
+  {
+    "id": "sumo-app",
+    "nome": "Sumo App",
+    "categoria": "robotics",
+    "status": "ativo",
+    "prioridade": "alta",
+    "stack": ["Robotics", "ESP32", "Firmware", "Control"],
+    "repo_name": "sumo-app",
+    "descricao": "Controle, telemetria e estratégias de robô de sumô autônomo.",
+    "next_action": "Revisar calibração de sensores e estado de ataque",
+    "pinned": true
+  },
+  {
+    "id": "rl-robot",
+    "nome": "RL Robot",
+    "categoria": "robotics",
+    "status": "ativo",
+    "prioridade": "alta",
+    "stack": ["Python", "RL", "Simulation", "Robotics"],
+    "repo_name": "rl-robot",
+    "descricao": "Treinamento por Aprendizado por Reforço para controle robótico.",
+    "next_action": "Ajustar função de recompensa e avaliar política",
+    "pinned": true
+  },
+  {
+    "id": "vss-ironcup-rl",
+    "nome": "VSS IronCup RL",
+    "categoria": "robotics",
+    "status": "ativo",
+    "prioridade": "media",
+    "stack": ["Python", "RL", "VSS", "Multi-Agent"],
+    "repo_name": "vss-ironcup-rl",
+    "descricao": "Agentes de RL para futebol de robôs Very Small Size (IronCup).",
+    "next_action": "Testar políticas de ataque/defesa no simulador",
+    "pinned": true
+  },
+  {
+    "id": "haxball-rl",
+    "nome": "Haxball RL",
+    "categoria": "code",
+    "status": "ativo",
+    "prioridade": "media",
+    "stack": ["Python", "RL", "AI"],
+    "repo_name": "haxball-rl",
+    "descricao": "Ambiente e agentes de Reinforcement Learning para Haxball.",
+    "next_action": "Comparar hiperparâmetros PPO e estabilidade do treino",
+    "pinned": true
+  }
+]
